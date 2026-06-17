@@ -9,6 +9,8 @@ import { pool } from "@workspace/db";
 
 const app: Express = express();
 
+app.set("trust proxy", 1);
+
 const PgSession = connectPgSimple(session);
 
 app.use(
@@ -51,6 +53,7 @@ app.use(
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     },
   }),

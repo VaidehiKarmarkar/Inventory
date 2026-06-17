@@ -1,0 +1,1 @@
+- [OptimaGodown setup](optimagodown-setup.md) — billing/inventory app with session auth, contract-first API, pdfkit invoices; key gotchas for codegen and types

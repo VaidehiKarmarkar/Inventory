@@ -137,43 +137,6 @@ export interface InventoryListResponse {
   limit: number;
 }
 
-export interface Customer {
-  id: number;
-  name: string;
-  mobile: string;
-  /** @nullable */
-  email?: string | null;
-  /** @nullable */
-  address?: string | null;
-  /** @nullable */
-  gstNumber?: string | null;
-  createdAt: string;
-}
-
-export interface CustomerInput {
-  /** @minLength 1 */
-  name: string;
-  mobile: string;
-  email?: string;
-  address?: string;
-  gstNumber?: string;
-}
-
-export interface CustomerUpdate {
-  name?: string;
-  mobile?: string;
-  email?: string;
-  address?: string;
-  gstNumber?: string;
-}
-
-export interface CustomerListResponse {
-  data: Customer[];
-  total: number;
-  page: number;
-  limit: number;
-}
-
 export interface OrderItem {
   id: number;
   productId: number;
@@ -192,8 +155,6 @@ export interface OrderItemInput {
 export interface Order {
   id: number;
   invoiceNumber: string;
-  /** @nullable */
-  customerId?: number | null;
   customerName: string;
   customerMobile: string;
   /** @nullable */
@@ -217,8 +178,6 @@ export interface Order {
 export interface OrderDetail {
   id: number;
   invoiceNumber: string;
-  /** @nullable */
-  customerId?: number | null;
   customerName: string;
   customerMobile: string;
   /** @nullable */
@@ -241,7 +200,6 @@ export interface OrderDetail {
 }
 
 export interface OrderInput {
-  customerId?: number;
   /** @minLength 1 */
   customerName: string;
   customerMobile: string;
@@ -334,15 +292,8 @@ page?: number;
 limit?: number;
 };
 
-export type ListCustomersParams = {
-search?: string;
-page?: number;
-limit?: number;
-};
-
 export type ListOrdersParams = {
 search?: string;
-customerId?: number;
 dateFrom?: string;
 dateTo?: string;
 page?: number;

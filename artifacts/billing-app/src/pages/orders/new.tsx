@@ -1,10 +1,8 @@
 import { useState } from "react";
 import {
-  useListCustomers,
   useListProducts,
   useCreateOrder,
   getListOrdersQueryKey,
-  getListCustomersQueryKey,
   getListProductsQueryKey,
   type OrderInput,
 } from "@workspace/api-client-react";
@@ -13,6 +11,7 @@ import { useLocation, Link } from "wouter";
 import { formatCurrency } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -32,17 +31,15 @@ export default function NewOrder() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  const [customerId, setCustomerId] = useState<number | null>(null);
+  const [customerName, setCustomerName] = useState("");
+  const [customerMobile, setCustomerMobile] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
   const [gstPercentage, setGstPercentage] = useState(18);
   const [items, setItems] = useState<OrderLineItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [customerSearch, setCustomerSearch] = useState("");
 
-  const { data: customersData } = useListCustomers(
-    { limit: 100 },
-    { query: { queryKey: getListCustomersQueryKey({ limit: 100 }) } }
-  );
   const { data: productsData } = useListProducts(
     { limit: 100 },
     { query: { queryKey: getListProductsQueryKey({ limit: 100 }) } }
@@ -50,13 +47,6 @@ export default function NewOrder() {
 
   const createOrder = useCreateOrder();
 
-  const filteredCustomers = customersData?.data?.filter(c =>
-    !customerSearch ||
-    c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.mobile.includes(customerSearch)
-  ) ?? [];
-
-  const selectedCustomer = customersData?.data?.find(c => c.id === customerId);
   const selectedProduct = productsData?.data?.find(p => p.id === selectedProductId);
 
   const addItem = () => {
@@ -111,8 +101,12 @@ export default function NewOrder() {
   const grandTotal = subtotal + gstAmount;
 
   const handleSubmit = () => {
-    if (!customerId || !selectedCustomer) {
-      toast({ title: "Please select a customer", variant: "destructive" });
+    if (!customerName.trim()) {
+      toast({ title: "Please enter customer name", variant: "destructive" });
+      return;
+    }
+    if (!customerMobile.trim()) {
+      toast({ title: "Please enter customer mobile", variant: "destructive" });
       return;
     }
     if (items.length === 0) {
@@ -121,11 +115,10 @@ export default function NewOrder() {
     }
 
     const payload: OrderInput = {
-      customerId,
-      customerName: selectedCustomer.name,
-      customerMobile: selectedCustomer.mobile,
-      customerEmail: selectedCustomer.email ?? undefined,
-      customerAddress: selectedCustomer.address ?? undefined,
+      customerName: customerName.trim(),
+      customerMobile: customerMobile.trim(),
+      customerEmail: customerEmail.trim() || undefined,
+      customerAddress: customerAddress.trim() || undefined,
       gstPercentage,
       items: items.map(i => ({
         productId: i.productId,
@@ -167,38 +160,50 @@ export default function NewOrder() {
         <div className="md:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Customer</CardTitle>
+              <CardTitle className="text-base">Customer Details</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <Input
-                placeholder="Search by name or mobile..."
-                value={customerSearch}
-                onChange={(e) => setCustomerSearch(e.target.value)}
-                data-testid="input-customer-search"
-              />
-              <Select
-                value={customerId ? String(customerId) : ""}
-                onValueChange={(v) => setCustomerId(Number(v))}
-              >
-                <SelectTrigger data-testid="select-order-customer">
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredCustomers.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      <span className="font-medium">{c.name}</span>
-                      <span className="text-muted-foreground ml-2 text-xs">{c.mobile}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedCustomer && (
-                <div className="text-sm text-muted-foreground bg-muted/30 rounded-md p-3 space-y-1">
-                  {selectedCustomer.email && <p><span className="font-medium">Email:</span> {selectedCustomer.email}</p>}
-                  {selectedCustomer.address && <p><span className="font-medium">Address:</span> {selectedCustomer.address}</p>}
-                  {selectedCustomer.gstNumber && <p><span className="font-medium">GST:</span> {selectedCustomer.gstNumber}</p>}
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customerName">Name <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="customerName"
+                    placeholder="Customer name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
                 </div>
-              )}
+                <div className="space-y-2">
+                  <Label htmlFor="customerMobile">Mobile <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="customerMobile"
+                    placeholder="Mobile number"
+                    value={customerMobile}
+                    onChange={(e) => setCustomerMobile(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customerEmail">Email <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                  <Input
+                    id="customerEmail"
+                    type="email"
+                    placeholder="email@example.com"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customerAddress">Address <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                  <Input
+                    id="customerAddress"
+                    placeholder="Billing address"
+                    value={customerAddress}
+                    onChange={(e) => setCustomerAddress(e.target.value)}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -343,7 +348,7 @@ export default function NewOrder() {
               <Button
                 className="w-full"
                 onClick={handleSubmit}
-                disabled={createOrder.isPending || !customerId || items.length === 0}
+                disabled={createOrder.isPending || !customerName.trim() || !customerMobile.trim() || items.length === 0}
                 data-testid="button-submit-order"
               >
                 {createOrder.isPending ? "Creating..." : "Create Order & Invoice"}

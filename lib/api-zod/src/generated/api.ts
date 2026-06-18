@@ -80,7 +80,6 @@ export const GetUserDashboardResponse = zod.object({
 export const GetRecentOrdersResponseItem = zod.object({
   "id": zod.number(),
   "invoiceNumber": zod.string(),
-  "customerId": zod.number().nullish(),
   "customerName": zod.string(),
   "customerMobile": zod.string(),
   "customerEmail": zod.string().nullish(),
@@ -244,103 +243,10 @@ export const AdjustInventoryBody = zod.object({
 
 
 /**
- * @summary List all customers
- */
-export const ListCustomersQueryParams = zod.object({
-  "search": zod.coerce.string().optional(),
-  "page": zod.coerce.number().optional(),
-  "limit": zod.coerce.number().optional()
-})
-
-export const ListCustomersResponse = zod.object({
-  "data": zod.array(zod.object({
-  "id": zod.number(),
-  "name": zod.string(),
-  "mobile": zod.string(),
-  "email": zod.string().nullish(),
-  "address": zod.string().nullish(),
-  "gstNumber": zod.string().nullish(),
-  "createdAt": zod.string()
-})),
-  "total": zod.number(),
-  "page": zod.number(),
-  "limit": zod.number()
-})
-
-
-/**
- * @summary Create a customer
- */
-
-
-
-export const CreateCustomerBody = zod.object({
-  "name": zod.string().min(1),
-  "mobile": zod.string(),
-  "email": zod.string().optional(),
-  "address": zod.string().optional(),
-  "gstNumber": zod.string().optional()
-})
-
-
-/**
- * @summary Get customer by ID
- */
-export const GetCustomerParams = zod.object({
-  "id": zod.coerce.number()
-})
-
-export const GetCustomerResponse = zod.object({
-  "id": zod.number(),
-  "name": zod.string(),
-  "mobile": zod.string(),
-  "email": zod.string().nullish(),
-  "address": zod.string().nullish(),
-  "gstNumber": zod.string().nullish(),
-  "createdAt": zod.string()
-})
-
-
-/**
- * @summary Update a customer
- */
-export const UpdateCustomerParams = zod.object({
-  "id": zod.coerce.number()
-})
-
-export const UpdateCustomerBody = zod.object({
-  "name": zod.string().optional(),
-  "mobile": zod.string().optional(),
-  "email": zod.string().optional(),
-  "address": zod.string().optional(),
-  "gstNumber": zod.string().optional()
-})
-
-export const UpdateCustomerResponse = zod.object({
-  "id": zod.number(),
-  "name": zod.string(),
-  "mobile": zod.string(),
-  "email": zod.string().nullish(),
-  "address": zod.string().nullish(),
-  "gstNumber": zod.string().nullish(),
-  "createdAt": zod.string()
-})
-
-
-/**
- * @summary Delete a customer
- */
-export const DeleteCustomerParams = zod.object({
-  "id": zod.coerce.number()
-})
-
-
-/**
  * @summary List orders (admin sees all, user sees own)
  */
 export const ListOrdersQueryParams = zod.object({
   "search": zod.coerce.string().optional(),
-  "customerId": zod.coerce.number().optional(),
   "dateFrom": zod.coerce.string().optional(),
   "dateTo": zod.coerce.string().optional(),
   "page": zod.coerce.number().optional(),
@@ -351,7 +257,6 @@ export const ListOrdersResponse = zod.object({
   "data": zod.array(zod.object({
   "id": zod.number(),
   "invoiceNumber": zod.string(),
-  "customerId": zod.number().nullish(),
   "customerName": zod.string(),
   "customerMobile": zod.string(),
   "customerEmail": zod.string().nullish(),
@@ -381,7 +286,6 @@ export const ListOrdersResponse = zod.object({
 
 
 export const CreateOrderBody = zod.object({
-  "customerId": zod.number().optional(),
   "customerName": zod.string().min(1),
   "customerMobile": zod.string(),
   "customerEmail": zod.string().optional(),
@@ -407,7 +311,6 @@ export const GetOrderParams = zod.object({
 export const GetOrderResponse = zod.object({
   "id": zod.number(),
   "invoiceNumber": zod.string(),
-  "customerId": zod.number().nullish(),
   "customerName": zod.string(),
   "customerMobile": zod.string(),
   "customerEmail": zod.string().nullish(),

@@ -10,8 +10,6 @@ import type { OrderItem } from './orderItem';
 export interface OrderDetail {
   id: number;
   invoiceNumber: string;
-  /** @nullable */
-  customerId?: number | null;
   customerName: string;
   customerMobile: string;
   /** @nullable */

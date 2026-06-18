@@ -9,8 +9,6 @@
 export interface Order {
   id: number;
   invoiceNumber: string;
-  /** @nullable */
-  customerId?: number | null;
   customerName: string;
   customerMobile: string;
   /** @nullable */

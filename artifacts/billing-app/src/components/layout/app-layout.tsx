@@ -1,7 +1,7 @@
 import { useAuth } from "@/lib/auth-context";
 import { Link, useLocation } from "wouter";
 import { useLogout } from "@workspace/api-client-react";
-import { LayoutDashboard, Package, History, Users, ShoppingCart, LogOut, Loader2, ChevronDown, UserSquare } from "lucide-react";
+import { LayoutDashboard, Package, History, ShoppingCart, LogOut, Loader2, UserSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -29,7 +29,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     ...(isAdmin ? [
       { label: "Products", href: "/products", icon: Package },
       { label: "Inventory Log", href: "/inventory", icon: History },
-      { label: "Customers", href: "/customers", icon: Users },
       { label: "Staff & Users", href: "/users", icon: UserSquare },
     ] : []),
   ];

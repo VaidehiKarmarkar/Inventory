@@ -11,7 +11,6 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Products from "@/pages/products";
 import Inventory from "@/pages/inventory";
-import Customers from "@/pages/customers";
 import Orders from "@/pages/orders";
 import NewOrder from "@/pages/orders/new";
 import OrderDetail from "@/pages/orders/detail";
@@ -53,7 +52,6 @@ function Router() {
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/products"><ProtectedRoute component={Products} adminOnly /></Route>
       <Route path="/inventory"><ProtectedRoute component={Inventory} adminOnly /></Route>
-      <Route path="/customers"><ProtectedRoute component={Customers} adminOnly /></Route>
       <Route path="/orders/new"><ProtectedRoute component={NewOrder} /></Route>
       <Route path="/orders/:id"><ProtectedRoute component={OrderDetail} /></Route>
       <Route path="/orders"><ProtectedRoute component={Orders} /></Route>

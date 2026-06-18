@@ -60,7 +60,6 @@ router.get("/orders", requireAuth, async (req, res): Promise<void> => {
     .select({
       id: ordersTable.id,
       invoiceNumber: ordersTable.invoiceNumber,
-      customerId: ordersTable.customerId,
       customerName: ordersTable.customerName,
       customerMobile: ordersTable.customerMobile,
       customerEmail: ordersTable.customerEmail,
@@ -102,7 +101,7 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
   }
 
   const {
-    customerName, customerMobile, customerEmail, customerAddress, customerId,
+    customerName, customerMobile, customerEmail, customerAddress,
     items, gstPercentage, referralCharges, discount,
   } = parsed.data;
 
@@ -141,7 +140,6 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
 
   const [order] = await db.insert(ordersTable).values({
     invoiceNumber,
-    customerId: customerId ?? null,
     customerName,
     customerMobile,
     customerEmail: customerEmail ?? null,
@@ -198,7 +196,6 @@ router.get("/orders/:id", requireAuth, async (req, res): Promise<void> => {
     .select({
       id: ordersTable.id,
       invoiceNumber: ordersTable.invoiceNumber,
-      customerId: ordersTable.customerId,
       customerName: ordersTable.customerName,
       customerMobile: ordersTable.customerMobile,
       customerEmail: ordersTable.customerEmail,

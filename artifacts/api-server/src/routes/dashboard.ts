@@ -71,7 +71,6 @@ router.get("/dashboard/recent-orders", requireAuth, async (req, res): Promise<vo
     .select({
       id: ordersTable.id,
       invoiceNumber: ordersTable.invoiceNumber,
-      customerId: ordersTable.customerId,
       customerName: ordersTable.customerName,
       customerMobile: ordersTable.customerMobile,
       customerEmail: ordersTable.customerEmail,

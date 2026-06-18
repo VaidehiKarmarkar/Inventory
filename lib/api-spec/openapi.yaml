@@ -18,8 +18,6 @@ tags:
     description: Product management
   - name: inventory
     description: Inventory management
-  - name: customers
-    description: Customer management
   - name: orders
     description: Order management
   - name: users
@@ -287,105 +285,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/InventoryTransaction"
 
-  # ── Customers ─────────────────────────────────────────────────────────────
-  /customers:
-    get:
-      operationId: listCustomers
-      tags: [customers]
-      summary: List all customers
-      parameters:
-        - name: search
-          in: query
-          schema:
-            type: string
-        - name: page
-          in: query
-          schema:
-            type: integer
-        - name: limit
-          in: query
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: List of customers
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CustomerListResponse"
-    post:
-      operationId: createCustomer
-      tags: [customers]
-      summary: Create a customer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CustomerInput"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Customer"
-
-  /customers/{id}:
-    get:
-      operationId: getCustomer
-      tags: [customers]
-      summary: Get customer by ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Customer
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Customer"
-    patch:
-      operationId: updateCustomer
-      tags: [customers]
-      summary: Update a customer
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CustomerUpdate"
-      responses:
-        "200":
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Customer"
-    delete:
-      operationId: deleteCustomer
-      tags: [customers]
-      summary: Delete a customer
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "204":
-          description: Deleted
-
   # ── Orders ────────────────────────────────────────────────────────────────
   /orders:
     get:
@@ -397,10 +296,6 @@ paths:
           in: query
           schema:
             type: string
-        - name: customerId
-          in: query
-          schema:
-            type: integer
         - name: dateFrom
           in: query
           schema:
@@ -838,71 +733,6 @@ components:
         limit:
           type: integer
 
-    # ── Customers ─────────────────────────────────────────────────────────
-    Customer:
-      type: object
-      required: [id, name, mobile, createdAt]
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        mobile:
-          type: string
-        email:
-          type: ["string", "null"]
-        address:
-          type: ["string", "null"]
-        gstNumber:
-          type: ["string", "null"]
-        createdAt:
-          type: string
-
-    CustomerInput:
-      type: object
-      required: [name, mobile]
-      properties:
-        name:
-          type: string
-          minLength: 1
-        mobile:
-          type: string
-        email:
-          type: string
-        address:
-          type: string
-        gstNumber:
-          type: string
-
-    CustomerUpdate:
-      type: object
-      properties:
-        name:
-          type: string
-        mobile:
-          type: string
-        email:
-          type: string
-        address:
-          type: string
-        gstNumber:
-          type: string
-
-    CustomerListResponse:
-      type: object
-      required: [data, total, page, limit]
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/Customer"
-        total:
-          type: integer
-        page:
-          type: integer
-        limit:
-          type: integer
-
     # ── Orders ────────────────────────────────────────────────────────────
     OrderItem:
       type: object
@@ -940,8 +770,6 @@ components:
           type: integer
         invoiceNumber:
           type: string
-        customerId:
-          type: ["integer", "null"]
         customerName:
           type: string
         customerMobile:
@@ -979,8 +807,6 @@ components:
           type: integer
         invoiceNumber:
           type: string
-        customerId:
-          type: ["integer", "null"]
         customerName:
           type: string
         customerMobile:
@@ -1018,8 +844,6 @@ components:
       type: object
       required: [customerName, customerMobile, items, gstPercentage]
       properties:
-        customerId:
-          type: integer
         customerName:
           type: string
           minLength: 1

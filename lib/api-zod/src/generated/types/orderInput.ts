@@ -8,7 +8,6 @@
 import type { OrderItemInput } from './orderItemInput';
 
 export interface OrderInput {
-  customerId?: number;
   /** @minLength 1 */
   customerName: string;
   customerMobile: string;

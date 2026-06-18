@@ -4,7 +4,6 @@ import authRouter from "./auth";
 import dashboardRouter from "./dashboard";
 import productsRouter from "./products";
 import inventoryRouter from "./inventory";
-import customersRouter from "./customers";
 import ordersRouter from "./orders";
 import usersRouter from "./users";
 
@@ -15,7 +14,6 @@ router.use(authRouter);
 router.use(dashboardRouter);
 router.use(productsRouter);
 router.use(inventoryRouter);
-router.use(customersRouter);
 router.use(ordersRouter);
 router.use(usersRouter);
 

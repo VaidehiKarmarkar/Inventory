@@ -8,7 +8,6 @@
 
 export type ListOrdersParams = {
 search?: string;
-customerId?: number;
 dateFrom?: string;
 dateTo?: string;
 page?: number;

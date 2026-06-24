@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, ordersTable, orderItemsTable, productsTable, inventoryTable, usersTable } from "@workspace/db";
-import { eq, ilike, gte, lte, and, sql } from "drizzle-orm";
+import { eq, ilike, gte, lte, and, sql, or } from "drizzle-orm";
 import { requireAuth, getSessionUser } from "../middlewares/auth";
 import {
   CreateOrderBody,
@@ -45,9 +45,18 @@ router.get("/orders", requireAuth, async (req, res): Promise<void> => {
 
   const conditions: ReturnType<typeof eq>[] = [];
   if (user.role !== "admin") conditions.push(eq(ordersTable.createdById, user.id) as ReturnType<typeof eq>);
-  if (search) conditions.push(ilike(ordersTable.customerName, `%${search}%`) as ReturnType<typeof eq>);
+  if (search) conditions.push(
+    or(
+      ilike(ordersTable.customerName, `%${search}%`),
+      ilike(ordersTable.invoiceNumber, `%${search}%`),
+    ) as ReturnType<typeof eq>
+  );
   if (dateFrom) conditions.push(gte(ordersTable.createdAt, new Date(dateFrom)) as ReturnType<typeof eq>);
-  if (dateTo) conditions.push(lte(ordersTable.createdAt, new Date(dateTo)) as ReturnType<typeof eq>);
+  if (dateTo) {
+    const end = new Date(dateTo);
+    end.setHours(23, 59, 59, 999);
+    conditions.push(lte(ordersTable.createdAt, end) as ReturnType<typeof eq>);
+  }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 

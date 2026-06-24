@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useListProducts,
   useCreateProduct,
@@ -80,15 +80,28 @@ export default function Products() {
     defaultValues: { name: "", description: "", price: 0, availableQuantity: 0 },
   });
 
+  useEffect(() => {
+    if (dialogOpen) {
+      if (editProduct) {
+        form.reset({
+          name: editProduct.name,
+          description: editProduct.description ?? "",
+          price: editProduct.price,
+          availableQuantity: editProduct.availableQuantity,
+        });
+      } else {
+        form.reset({ name: "", description: "", price: 0, availableQuantity: 0 });
+      }
+    }
+  }, [dialogOpen, editProduct]);
+
   const openCreate = () => {
     setEditProduct(null);
-    form.reset({ name: "", description: "", price: 0, availableQuantity: 0 });
     setDialogOpen(true);
   };
 
   const openEdit = (p: Product) => {
     setEditProduct(p);
-    form.reset({ name: p.name, description: p.description, price: p.price, availableQuantity: p.availableQuantity });
     setDialogOpen(true);
   };
 
@@ -211,7 +224,7 @@ export default function Products() {
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditProduct(null); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editProduct ? "Edit Product" : "Add Product"}</DialogTitle>

@@ -266,8 +266,9 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
 
   const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
 
-  // Dynamic import for pdfkit
-  const PDFDocument = (await import("pdfkit")).default;
+  // Dynamic import for pdfkit (externalized from esbuild to avoid CJS bundling issues)
+  const pdfkitModule = await import("pdfkit");
+  const PDFDocument = (pdfkitModule.default ?? pdfkitModule) as typeof pdfkitModule.default;
   const doc = new PDFDocument({ margin: 50, size: "A4" });
 
   res.setHeader("Content-Type", "application/pdf");

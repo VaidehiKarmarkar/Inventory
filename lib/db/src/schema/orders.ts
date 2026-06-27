@@ -16,6 +16,8 @@ export const ordersTable = pgTable("orders", {
   referralCharges: numeric("referral_charges", { precision: 12, scale: 2 }).notNull().default("0"),
   discount: numeric("discount", { precision: 12, scale: 2 }).notNull().default("0"),
   grandTotal: numeric("grand_total", { precision: 12, scale: 2 }).notNull(),
+  paidAmount: numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  pendingAmount: numeric("pending_amount", { precision: 12, scale: 2 }).notNull().default("0"),
   status: text("status").notNull().default("completed"),
   createdById: integer("created_by_id").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

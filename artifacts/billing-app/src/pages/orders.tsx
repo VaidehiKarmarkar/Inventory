@@ -117,7 +117,8 @@ export default function Orders() {
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
                   <th className="text-right px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Subtotal</th>
                   <th className="text-right px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">GST</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Total</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Total & Paid</th>
+                  <th className="text-center px-4 py-3 font-medium text-muted-foreground">Payment Status</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Date</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Created By</th>
                   <th className="text-right px-6 py-3 font-medium text-muted-foreground">Actions</th>
@@ -125,7 +126,7 @@ export default function Orders() {
               </thead>
               <tbody className="divide-y">
                 {data.data.map((order) => (
-                  <tr key={order.id} className="hover:bg-muted/30 transition-colors" data-testid={`row-order-${order.id}`}>
+                  <tr key={order.id} className={`hover:bg-muted/30 transition-colors ${order.pendingAmount > 0 ? "bg-amber-500/[0.02]" : ""}`} data-testid={`row-order-${order.id}`}>
                     <td className="px-6 py-3">
                       <span className="font-mono text-xs font-medium text-primary">{order.invoiceNumber}</span>
                     </td>
@@ -137,7 +138,23 @@ export default function Orders() {
                     </td>
                     <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell">{formatCurrency(order.subtotal)}</td>
                     <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell">{formatCurrency(order.gstAmount)}</td>
-                    <td className="px-4 py-3 text-right font-bold">{formatCurrency(order.grandTotal)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div>
+                        <p className="font-bold">{formatCurrency(order.grandTotal)}</p>
+                        <p className="text-[11px] text-muted-foreground">Paid: {formatCurrency(order.paidAmount)}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {order.pendingAmount > 0 ? (
+                        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-semibold px-2.5 py-0.5 rounded-full text-xs animate-pulse">
+                          Pending: {formatCurrency(order.pendingAmount)}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-medium px-2.5 py-0.5 rounded-full text-xs">
+                          Fully Paid
+                        </Badge>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">{formatDate(String(order.createdAt))}</td>
                     <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{order.createdByName ?? "—"}</td>
                     <td className="px-6 py-3">

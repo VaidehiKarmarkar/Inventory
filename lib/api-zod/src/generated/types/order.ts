@@ -21,6 +21,8 @@ export interface Order {
   referralCharges?: number;
   discount?: number;
   grandTotal: number;
+  paidAmount: number;
+  pendingAmount: number;
   status: string;
   /** @nullable */
   createdById?: number | null;

@@ -47,3 +47,11 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# local env and cookies secrets
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+cookies.txt

@@ -39,6 +39,7 @@ export default function NewOrder() {
   const [items, setItems] = useState<OrderLineItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [customPaidAmount, setCustomPaidAmount] = useState<string>("");
 
   const { data: productsData } = useListProducts(
     { limit: 100 },
@@ -120,6 +121,7 @@ export default function NewOrder() {
       customerEmail: customerEmail.trim() || undefined,
       customerAddress: customerAddress.trim() || undefined,
       gstPercentage,
+      paidAmount: customPaidAmount !== "" ? Number(customPaidAmount) : undefined,
       items: items.map(i => ({
         productId: i.productId,
         quantity: i.quantity,
@@ -336,6 +338,43 @@ export default function NewOrder() {
                   <span>{formatCurrency(grandTotal)}</span>
                 </div>
               </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label htmlFor="paidAmount" className="text-xs font-semibold text-foreground/80">Amount Paid (₹)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="paidAmount"
+                    type="number"
+                    min={0}
+                    max={grandTotal}
+                    step={0.01}
+                    placeholder={grandTotal.toFixed(2)}
+                    value={customPaidAmount}
+                    onChange={(e) => setCustomPaidAmount(e.target.value)}
+                    className="h-9 w-full text-sm font-semibold"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCustomPaidAmount("")}
+                    className="h-9 text-xs px-2 shrink-0 cursor-pointer"
+                    disabled={customPaidAmount === ""}
+                  >
+                    Reset
+                  </Button>
+                </div>
+                {customPaidAmount !== "" && (
+                  <div className="flex justify-between items-center text-xs mt-1.5 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-medium">
+                    <span>Pending Balance</span>
+                    <span className="font-bold text-sm">{formatCurrency(Math.max(0, grandTotal - Number(customPaidAmount)))}</span>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
 
               <div className="text-xs text-muted-foreground">
                 <p>{items.length} item type{items.length !== 1 ? "s" : ""}</p>

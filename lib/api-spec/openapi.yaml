@@ -764,7 +764,7 @@ components:
 
     Order:
       type: object
-      required: [id, invoiceNumber, customerName, customerMobile, subtotal, gstPercentage, gstAmount, grandTotal, status, createdAt]
+      required: [id, invoiceNumber, customerName, customerMobile, subtotal, gstPercentage, gstAmount, grandTotal, paidAmount, pendingAmount, status, createdAt]
       properties:
         id:
           type: integer
@@ -789,6 +789,10 @@ components:
         discount:
           type: number
         grandTotal:
+          type: number
+        paidAmount:
+          type: number
+        pendingAmount:
           type: number
         status:
           type: string
@@ -801,7 +805,7 @@ components:
 
     OrderDetail:
       type: object
-      required: [id, invoiceNumber, customerName, customerMobile, subtotal, gstPercentage, gstAmount, grandTotal, status, createdAt, items]
+      required: [id, invoiceNumber, customerName, customerMobile, subtotal, gstPercentage, gstAmount, grandTotal, paidAmount, pendingAmount, status, createdAt, items]
       properties:
         id:
           type: integer
@@ -826,6 +830,10 @@ components:
         discount:
           type: number
         grandTotal:
+          type: number
+        paidAmount:
+          type: number
+        pendingAmount:
           type: number
         status:
           type: string
@@ -863,6 +871,8 @@ components:
         referralCharges:
           type: number
         discount:
+          type: number
+        paidAmount:
           type: number
 
     OrderListResponse:

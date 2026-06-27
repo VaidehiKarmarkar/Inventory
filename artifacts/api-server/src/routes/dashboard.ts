@@ -81,6 +81,8 @@ router.get("/dashboard/recent-orders", requireAuth, async (req, res): Promise<vo
       referralCharges: ordersTable.referralCharges,
       discount: ordersTable.discount,
       grandTotal: ordersTable.grandTotal,
+      paidAmount: ordersTable.paidAmount,
+      pendingAmount: ordersTable.pendingAmount,
       status: ordersTable.status,
       createdById: ordersTable.createdById,
       createdByName: usersTable.name,
@@ -91,7 +93,17 @@ router.get("/dashboard/recent-orders", requireAuth, async (req, res): Promise<vo
     .orderBy(sql`${ordersTable.createdAt} desc`)
     .limit(10);
 
-  res.json(orders.map(o => ({ ...o, subtotal: Number(o.subtotal), gstPercentage: Number(o.gstPercentage), gstAmount: Number(o.gstAmount), referralCharges: Number(o.referralCharges), discount: Number(o.discount), grandTotal: Number(o.grandTotal) })));
+  res.json(orders.map(o => ({
+    ...o,
+    subtotal: Number(o.subtotal),
+    gstPercentage: Number(o.gstPercentage),
+    gstAmount: Number(o.gstAmount),
+    referralCharges: Number(o.referralCharges),
+    discount: Number(o.discount),
+    grandTotal: Number(o.grandTotal),
+    paidAmount: Number(o.paidAmount),
+    pendingAmount: Number(o.pendingAmount),
+  })));
 });
 
 router.get("/dashboard/low-stock", requireAuth, async (req, res): Promise<void> => {

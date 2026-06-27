@@ -18,4 +18,5 @@ export interface OrderInput {
   gstPercentage: number;
   referralCharges?: number;
   discount?: number;
+  paidAmount?: number;
 }

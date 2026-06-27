@@ -28,6 +28,8 @@ function numericFields(o: Record<string, unknown>) {
     referralCharges: Number(o.referralCharges),
     discount: Number(o.discount),
     grandTotal: Number(o.grandTotal),
+    paidAmount: Number(o.paidAmount),
+    pendingAmount: Number(o.pendingAmount),
   };
 }
 
@@ -79,6 +81,8 @@ router.get("/orders", requireAuth, async (req, res): Promise<void> => {
       referralCharges: ordersTable.referralCharges,
       discount: ordersTable.discount,
       grandTotal: ordersTable.grandTotal,
+      paidAmount: ordersTable.paidAmount,
+      pendingAmount: ordersTable.pendingAmount,
       status: ordersTable.status,
       createdById: ordersTable.createdById,
       createdByName: usersTable.name,
@@ -111,7 +115,7 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
 
   const {
     customerName, customerMobile, customerEmail, customerAddress,
-    items, gstPercentage, referralCharges, discount,
+    items, gstPercentage, referralCharges, discount, paidAmount,
   } = parsed.data;
 
   // Validate stock and compute subtotal
@@ -147,6 +151,10 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
   const grandTotal = subtotal + gstAmount + refCharges - disc;
   const invoiceNumber = generateInvoiceNumber();
 
+  const paid = paidAmount !== undefined ? paidAmount : grandTotal;
+  const pending = Math.max(0, grandTotal - paid);
+  const status = pending > 0 ? "pending" : "completed";
+
   const [order] = await db.insert(ordersTable).values({
     invoiceNumber,
     customerName,
@@ -159,7 +167,9 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     referralCharges: String(refCharges),
     discount: String(disc),
     grandTotal: String(grandTotal),
-    status: "completed",
+    paidAmount: String(paid),
+    pendingAmount: String(pending),
+    status,
     createdById: user.id,
   }).returning();
 
@@ -215,6 +225,8 @@ router.get("/orders/:id", requireAuth, async (req, res): Promise<void> => {
       referralCharges: ordersTable.referralCharges,
       discount: ordersTable.discount,
       grandTotal: ordersTable.grandTotal,
+      paidAmount: ordersTable.paidAmount,
+      pendingAmount: ordersTable.pendingAmount,
       status: ordersTable.status,
       createdById: ordersTable.createdById,
       createdByName: usersTable.name,
@@ -345,6 +357,17 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   doc.font("Helvetica-Bold").fontSize(12);
   doc.text("Grand Total:", totalsX, doc.y, { continued: true, width: 100 });
   doc.text(`₹${grandTotal.toFixed(2)}`, { width: 70, align: "right" });
+
+  const paid = Number(order.paidAmount ?? 0);
+  const pending = Number(order.pendingAmount ?? 0);
+  doc.font("Helvetica").fontSize(10);
+  doc.text("Paid Amount:", totalsX, doc.y, { continued: true, width: 100 });
+  doc.text(`₹${paid.toFixed(2)}`, { width: 70, align: "right" });
+  if (pending > 0) {
+    doc.fillColor("#b91c1c").font("Helvetica-Bold").text("Pending Balance:", totalsX, doc.y, { continued: true, width: 100 });
+    doc.text(`₹${pending.toFixed(2)}`, { width: 70, align: "right" });
+    doc.fillColor("black");
+  }
   doc.moveDown(2);
 
   doc.font("Helvetica").fontSize(9).fillColor("gray").text("Thank you for your business!", { align: "center" });

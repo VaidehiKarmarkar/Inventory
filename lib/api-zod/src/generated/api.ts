@@ -90,6 +90,8 @@ export const GetRecentOrdersResponseItem = zod.object({
   "referralCharges": zod.number().optional(),
   "discount": zod.number().optional(),
   "grandTotal": zod.number(),
+  "paidAmount": zod.number(),
+  "pendingAmount": zod.number(),
   "status": zod.string(),
   "createdById": zod.number().nullish(),
   "createdByName": zod.string().nullish(),
@@ -267,6 +269,8 @@ export const ListOrdersResponse = zod.object({
   "referralCharges": zod.number().optional(),
   "discount": zod.number().optional(),
   "grandTotal": zod.number(),
+  "paidAmount": zod.number(),
+  "pendingAmount": zod.number(),
   "status": zod.string(),
   "createdById": zod.number().nullish(),
   "createdByName": zod.string().nullish(),
@@ -297,7 +301,8 @@ export const CreateOrderBody = zod.object({
 })).min(1),
   "gstPercentage": zod.number(),
   "referralCharges": zod.number().optional(),
-  "discount": zod.number().optional()
+  "discount": zod.number().optional(),
+  "paidAmount": zod.number().optional()
 })
 
 
@@ -321,6 +326,8 @@ export const GetOrderResponse = zod.object({
   "referralCharges": zod.number().optional(),
   "discount": zod.number().optional(),
   "grandTotal": zod.number(),
+  "paidAmount": zod.number(),
+  "pendingAmount": zod.number(),
   "status": zod.string(),
   "createdById": zod.number().nullish(),
   "createdByName": zod.string().nullish(),

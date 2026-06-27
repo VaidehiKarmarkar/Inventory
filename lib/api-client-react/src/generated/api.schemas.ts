@@ -167,6 +167,8 @@ export interface Order {
   referralCharges?: number;
   discount?: number;
   grandTotal: number;
+  paidAmount: number;
+  pendingAmount: number;
   status: string;
   /** @nullable */
   createdById?: number | null;
@@ -190,6 +192,8 @@ export interface OrderDetail {
   referralCharges?: number;
   discount?: number;
   grandTotal: number;
+  paidAmount: number;
+  pendingAmount: number;
   status: string;
   /** @nullable */
   createdById?: number | null;
@@ -210,6 +214,7 @@ export interface OrderInput {
   gstPercentage: number;
   referralCharges?: number;
   discount?: number;
+  paidAmount?: number;
 }
 
 export interface OrderListResponse {

@@ -68,7 +68,15 @@ export default function OrderDetail() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold tracking-tight font-mono">{order.invoiceNumber}</h1>
-              <Badge variant="outline" className="uppercase text-xs">{order.status}</Badge>
+              {order.pendingAmount > 0 ? (
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-semibold px-2 py-0.5 text-xs animate-pulse">
+                  PENDING BALANCE: {formatCurrency(order.pendingAmount)}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-medium px-2 py-0.5 text-xs">
+                  FULLY PAID
+                </Badge>
+              )}
             </div>
             <p className="text-muted-foreground text-sm mt-0.5">Created {formatDate(order.createdAt)}</p>
           </div>
@@ -126,7 +134,15 @@ export default function OrderDetail() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Status</span>
-              <Badge variant="outline" className="uppercase text-xs">{order.status}</Badge>
+              {order.pendingAmount > 0 ? (
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-semibold uppercase text-xs">
+                  Pending Follow-up
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-medium uppercase text-xs">
+                  Completed
+                </Badge>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -174,6 +190,17 @@ export default function OrderDetail() {
               <span>Grand Total</span>
               <span>{formatCurrency(order.grandTotal)}</span>
             </div>
+            <Separator />
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Amount Paid</span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(order.paidAmount)}</span>
+            </div>
+            {order.pendingAmount > 0 && (
+              <div className="flex justify-between text-sm p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 font-bold animate-pulse">
+                <span>Pending Balance</span>
+                <span>{formatCurrency(order.pendingAmount)}</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

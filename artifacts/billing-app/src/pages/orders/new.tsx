@@ -318,16 +318,19 @@ export default function NewOrder() {
                   <div className="flex items-center gap-2">
                     <span>GST</span>
                     <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={0.01}
-                        value={gstPercentage}
-                        onChange={(e) => setGstPercentage(Math.max(0, Math.min(100, Number(e.target.value))))}
-                        className="h-6 w-16 text-xs text-right px-2"
-                      />
-                      <span className="text-xs">%</span>
+                      <Select
+                        value={String(gstPercentage)}
+                        onValueChange={(v) => setGstPercentage(Number(v))}
+                      >
+                        <SelectTrigger className="h-7 w-20 text-xs px-2" data-testid="select-gst">
+                          <SelectValue placeholder="Select GST" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">0%</SelectItem>
+                          <SelectItem value="1">1%</SelectItem>
+                          <SelectItem value="18">18%</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <span>{formatCurrency(gstAmount)}</span>

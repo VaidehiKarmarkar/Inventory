@@ -50,7 +50,7 @@ export default function Login() {
           <div className="w-10 h-10 bg-primary/10 border border-primary/20 text-primary rounded-xl flex items-center justify-center shadow-inner">
             <Package className="w-5 h-5 text-indigo-400" />
           </div>
-          <span className="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-indigo-100">OptimaGodown</span>
+          <span className="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-indigo-100">Aloha Crystal World</span>
         </div>
 
         {/* Hero Content */}
@@ -81,7 +81,7 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-6 bg-slate-50 dark:bg-zinc-950 relative">
         <div className="absolute top-10 right-10 md:hidden flex items-center gap-2">
           <Package className="w-5 h-5 text-primary" />
-          <span className="font-bold text-sm tracking-tight text-foreground">OptimaGodown</span>
+          <span className="font-bold text-sm tracking-tight text-foreground">Aloha Crystal World</span>
         </div>
 
         <div className="w-full max-w-md">

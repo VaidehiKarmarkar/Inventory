@@ -72,7 +72,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
             <Package className="w-5 h-5" />
           </div>
-          <span className="font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-indigo-500 to-indigo-600">OptimaGodown</span>
+          <span className="font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-indigo-500 to-indigo-600">Aloha Crystal World</span>
         </div>
       </header>
 

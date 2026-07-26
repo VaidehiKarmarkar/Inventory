@@ -87,7 +87,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/90 to-foreground/80">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Welcome back, {user?.name || "User"}. Here is what's happening at OptimaGodown today.</p>
+          <p className="text-muted-foreground text-sm">Welcome back, {user?.name || "User"}. Here is what's happening at Aloha Crystal World today.</p>
         </div>
         <div className="hidden sm:flex items-center gap-2 bg-primary/10 text-primary px-3.5 py-1.5 rounded-full text-xs font-semibold">
           <Sparkles className="w-3.5 h-3.5" />

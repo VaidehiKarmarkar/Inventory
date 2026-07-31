@@ -14,8 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, ArrowLeft, ShoppingCart } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, ShoppingCart, ChevronsUpDown, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface OrderLineItem {
@@ -38,6 +40,7 @@ export default function NewOrder() {
   const [gstPercentage, setGstPercentage] = useState(18);
   const [items, setItems] = useState<OrderLineItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [productComboOpen, setProductComboOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [customPaidAmount, setCustomPaidAmount] = useState<string>("");
 

@@ -169,7 +169,7 @@ Mobile no should be 10 digital and start with only 7,8,9 and 6 - done and verifi
 
 A4 Size - Print / invocie - Done & verified
 
-Add shop name and address above invoice number -
+Add shop name and address above invoice number - Done and verified 
 Aloha Crystal World
 Vedanta Heights, Shri Colony,
 Dastur Nagar, Amravati.

@@ -1,4 +1,4 @@
-# OptimaGodown – Billing & Inventory Management System
+# OptimaGodown – Billing & Inventory Management System (abe Jaldi kar Panvel Nikalna hai :) )
 
 Welcome to the **OptimaGodown** codebase. This is a web-based monorepo application designed to manage product catalogs, track real-time inventory adjustments, execute customer sales orders, generate print-ready invoice PDFs, and control user access with role-based permissions (RBAC).
 

@@ -131,3 +131,28 @@ The database seeder provisions two default roles for exploring the system:
 | :--- | :--- | :--- | :--- |
 | **admin** | `admin123` | **Admin** | Full Management |
 | **user** | `user123` | **User** | Orders & Invoices Only |
+
+
+MOM on 1st Aug - 
+**Task & System Updates**
+❌ Removed Features / Fields
+Created By
+
+Status
+
+Header Invoice Number (Inv no)
+
+**⚙️ Field & Logic Changes**
+Invoice Number Format: Update format to ——
+
+Amount Paid: Add payment method options (Cash or UPI)
+
+Side Order Details (Nikita's Feedback): Update the side order details section as requested
+
+Low Stock Alert Threshold: Lower threshold from 5 to 2
+
+Bill Name & Labels: Rename Product to CRYSTAL TYPE
+
+GST & Discount Display Logic: If the value is 0, do not print it on the bill
+
+

@@ -18,6 +18,7 @@ export const ordersTable = pgTable("orders", {
   grandTotal: numeric("grand_total", { precision: 12, scale: 2 }).notNull(),
   paidAmount: numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
   pendingAmount: numeric("pending_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  paymentMethod: text("payment_method").notNull().default("Cash"),
   status: text("status").notNull().default("completed"),
   createdById: integer("created_by_id").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

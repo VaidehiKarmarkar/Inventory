@@ -36,6 +36,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList, CommandInput } from "@/components/ui/command";
 import {
   Form,
   FormControl,
@@ -45,7 +47,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Edit, Trash2, Package } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, ChevronsUpDown, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const productSchema = z.object({
@@ -61,6 +63,7 @@ export default function Products() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -69,6 +72,11 @@ export default function Products() {
   const { data, isLoading } = useListProducts(
     { search: search || undefined, page, limit: 15 },
     { query: { queryKey: getListProductsQueryKey({ search: search || undefined, page, limit: 15 }) } }
+  );
+
+  const { data: allProductsData } = useListProducts(
+    { limit: 100 },
+    { query: { queryKey: getListProductsQueryKey({ limit: 100 }) } }
   );
 
   const createProduct = useCreateProduct();
@@ -150,15 +158,93 @@ export default function Products() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search products..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            data-testid="input-search-products"
-          />
+        <div className="relative flex-1 max-w-md">
+          <Popover open={searchDropdownOpen} onOpenChange={setSearchDropdownOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={searchDropdownOpen}
+                className="w-full justify-between font-normal text-muted-foreground bg-background hover:bg-accent/50 shadow-xs h-10 px-3"
+                data-testid="button-search-products-combobox"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Search className="w-4 h-4 shrink-0 opacity-50" />
+                  <span className={search ? "text-foreground font-medium truncate" : "truncate"}>
+                    {search || "Smart Search Crystal Type..."}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {search && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSearch("");
+                        setPage(1);
+                      }}
+                      className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                  <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50 ml-1" />
+                </div>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[320px] sm:w-[400px] p-0" align="start">
+              <Command>
+                <CommandInput
+                  placeholder="Search crystal type name..."
+                  onValueChange={(val: string) => {
+                    setSearch(val);
+                    setPage(1);
+                  }}
+                />
+                <CommandList className="max-h-[260px] overflow-y-auto">
+                  <CommandEmpty>No matching crystal types found.</CommandEmpty>
+                  <CommandGroup heading="All Crystal Types">
+                    {search && (
+                      <CommandItem
+                        value="--clear-all-search-filter--"
+                        onSelect={() => {
+                          setSearch("");
+                          setPage(1);
+                          setSearchDropdownOpen(false);
+                        }}
+                        className="text-xs text-primary font-semibold py-1.5 px-3 cursor-pointer border-b bg-muted/30"
+                      >
+                        Show All Products (Clear Search)
+                      </CommandItem>
+                    )}
+                    {allProductsData?.data?.map((p) => (
+                      <CommandItem
+                        key={p.id}
+                        value={p.name}
+                        onSelect={() => {
+                          setSearch(p.name);
+                          setPage(1);
+                          setSearchDropdownOpen(false);
+                        }}
+                        className="flex items-center justify-between py-2 px-3 cursor-pointer"
+                      >
+                        <div className="flex flex-col gap-0.5 max-w-[200px]">
+                          <span className="font-semibold text-sm text-foreground truncate">{p.name}</span>
+                          <span className="text-xs text-muted-foreground truncate">{p.description || "Crystal Type"}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs font-mono font-bold text-primary">{formatCurrency(p.price)}</span>
+                          <Badge variant={p.availableQuantity === 0 ? "destructive" : p.availableQuantity <= 2 ? "secondary" : "outline"} className="text-[10px]">
+                            {p.availableQuantity} left
+                          </Badge>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -192,7 +278,7 @@ export default function Products() {
                     <td className="px-4 py-3 text-muted-foreground hidden md:table-cell max-w-[240px] truncate">{p.description || "—"}</td>
                     <td className="px-4 py-3 text-right font-medium">{formatCurrency(p.price)}</td>
                     <td className="px-4 py-3 text-right">
-                      <Badge variant={p.availableQuantity === 0 ? "destructive" : p.availableQuantity < 10 ? "secondary" : "outline"}>
+                      <Badge variant={p.availableQuantity === 0 ? "destructive" : p.availableQuantity <= 2 ? "secondary" : "outline"}>
                         {p.availableQuantity === 0 ? "Out of stock" : `${p.availableQuantity} units`}
                       </Badge>
                     </td>

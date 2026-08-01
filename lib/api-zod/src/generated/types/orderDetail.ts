@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { OrderItem } from './orderItem';
+import type { OrderPayment } from './orderPayment';
 
 export interface OrderDetail {
   id: number;
@@ -24,6 +25,7 @@ export interface OrderDetail {
   grandTotal: number;
   paidAmount: number;
   pendingAmount: number;
+  paymentMethod?: string;
   status: string;
   /** @nullable */
   createdById?: number | null;
@@ -31,4 +33,5 @@ export interface OrderDetail {
   createdByName?: string | null;
   createdAt: string;
   items: OrderItem[];
+  payments?: OrderPayment[];
 }

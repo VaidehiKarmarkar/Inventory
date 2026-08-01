@@ -357,8 +357,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OrderDetail"
+  /orders/{id}/payments:
+    post:
+      operationId: recordPayment
+      tags: [orders]
+      summary: Record a payment transaction with mandatory remarks for an order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordPaymentInput"
+      responses:
+        "200":
+          description: Updated order detail with payment history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderDetail"
+        "400":
+          description: Validation error
         "404":
-          description: Not found
+          description: Order not found
 
   /orders/{id}/invoice:
     get:
@@ -794,6 +820,10 @@ components:
           type: number
         pendingAmount:
           type: number
+        paymentMethod:
+          type: string
+          enum: [Cash, UPI]
+          default: Cash
         status:
           type: string
         createdById:
@@ -835,6 +865,10 @@ components:
           type: number
         pendingAmount:
           type: number
+        paymentMethod:
+          type: string
+          enum: [Cash, UPI]
+          default: Cash
         status:
           type: string
         createdById:
@@ -847,6 +881,45 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/OrderItem"
+        payments:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderPayment"
+
+    OrderPayment:
+      type: object
+      required: [id, orderId, amount, paymentMethod, remarks, createdAt]
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        amount:
+          type: number
+        paymentMethod:
+          type: string
+        remarks:
+          type: string
+        createdById:
+          type: ["integer", "null"]
+        createdByName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    RecordPaymentInput:
+      type: object
+      required: [amount, paymentMethod, remarks]
+      properties:
+        amount:
+          type: number
+          minimum: 0.01
+        paymentMethod:
+          type: string
+          enum: [Cash, UPI]
+        remarks:
+          type: string
+          minLength: 1
 
     OrderInput:
       type: object
@@ -874,6 +947,10 @@ components:
           type: number
         paidAmount:
           type: number
+        paymentMethod:
+          type: string
+          enum: [Cash, UPI]
+          default: Cash
 
     OrderListResponse:
       type: object

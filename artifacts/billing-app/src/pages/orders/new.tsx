@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, ArrowLeft, ShoppingCart, ChevronsUpDown, Check } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, ShoppingCart, ChevronsUpDown, Check, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface OrderLineItem {
@@ -43,6 +43,7 @@ export default function NewOrder() {
   const [productComboOpen, setProductComboOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [customPaidAmount, setCustomPaidAmount] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "UPI">("Cash");
 
   const { data: productsData } = useListProducts(
     { limit: 100 },
@@ -89,22 +90,37 @@ export default function NewOrder() {
     setItems(prev => prev.filter(i => i.productId !== productId));
   };
 
-  const updateItemQuantity = (productId: number, qty: number) => {
+  const updateItemQuantity = (productId: number, rawVal: string) => {
     const product = items.find(i => i.productId === productId);
     if (!product) return;
-    if (qty < 1) { removeItem(productId); return; }
-    if (qty > product.availableQuantity) {
-      toast({ title: `Only ${product.availableQuantity} units available`, variant: "destructive" });
+    if (rawVal === "") {
+      setItems(prev => prev.map(i => i.productId === productId ? { ...i, quantity: 0 } : i));
       return;
     }
-    setItems(prev => prev.map(i => i.productId === productId ? { ...i, quantity: qty } : i));
+    const qty = parseInt(rawVal, 10);
+    if (isNaN(qty)) return;
+    if (qty > product.availableQuantity) {
+      toast({ title: `Only ${product.availableQuantity} units available`, variant: "destructive" });
+      setItems(prev => prev.map(i => i.productId === productId ? { ...i, quantity: product.availableQuantity } : i));
+      return;
+    }
+    setItems(prev => prev.map(i => i.productId === productId ? { ...i, quantity: Math.max(0, qty) } : i));
+  };
+
+  const handleItemQuantityBlur = (productId: number) => {
+    setItems(prev => prev.map(i => {
+      if (i.productId === productId && i.quantity < 1) {
+        return { ...i, quantity: 1 };
+      }
+      return i;
+    }));
   };
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const gstAmount = subtotal * (gstPercentage / 100);
   const grandTotal = subtotal + gstAmount;
 
-  const handleSubmit = () => {
+  const handleSubmit = (andPrint = false) => {
     if (!customerName.trim()) {
       toast({ title: "Please enter customer name", variant: "destructive" });
       return;
@@ -113,8 +129,21 @@ export default function NewOrder() {
       toast({ title: "Please enter customer mobile", variant: "destructive" });
       return;
     }
+    const mobileRegex = /^[6789]\d{9}$/;
+    if (!mobileRegex.test(customerMobile.trim())) {
+      toast({
+        title: "Invalid Mobile Number",
+        description: "Mobile number must be 10 digits and start with 6, 7, 8, or 9",
+        variant: "destructive",
+      });
+      return;
+    }
     if (items.length === 0) {
       toast({ title: "Please add at least one item", variant: "destructive" });
+      return;
+    }
+    if (items.some(i => i.quantity < 1)) {
+      toast({ title: "Please enter a valid quantity for all items", variant: "destructive" });
       return;
     }
 
@@ -125,6 +154,7 @@ export default function NewOrder() {
       customerAddress: customerAddress.trim() || undefined,
       gstPercentage,
       paidAmount: customPaidAmount !== "" ? Number(customPaidAmount) : undefined,
+      paymentMethod,
       items: items.map(i => ({
         productId: i.productId,
         quantity: i.quantity,
@@ -135,10 +165,31 @@ export default function NewOrder() {
     createOrder.mutate(
       { data: payload },
       {
-        onSuccess: (order) => {
+        onSuccess: async (order) => {
           toast({ title: `Order ${order.invoiceNumber} created!` });
           queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
           queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+
+          if (andPrint) {
+            try {
+              const res = await fetch(`/api/orders/${order.id}/invoice`, { credentials: "include" });
+              if (res.ok) {
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const printWin = window.open(url, "_blank");
+                if (printWin) {
+                  printWin.focus();
+                } else {
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `${order.invoiceNumber}.pdf`;
+                  a.click();
+                }
+              }
+            } catch (e) {
+              console.error("Failed to print invoice:", e);
+            }
+          }
           setLocation(`/orders/${order.id}`);
         },
         onError: (err: unknown) => {
@@ -182,9 +233,10 @@ export default function NewOrder() {
                   <Label htmlFor="customerMobile">Mobile <span className="text-destructive">*</span></Label>
                   <Input
                     id="customerMobile"
-                    placeholder="Mobile number"
+                    placeholder="10-digit mobile (starts with 6-9)"
+                    maxLength={10}
                     value={customerMobile}
-                    onChange={(e) => setCustomerMobile(e.target.value)}
+                    onChange={(e) => setCustomerMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
                   />
                 </div>
               </div>
@@ -214,31 +266,73 @@ export default function NewOrder() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Add Products</CardTitle>
+              <CardTitle className="text-base">Add Crystal Types</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <Select
-                    value={selectedProductId ? String(selectedProductId) : ""}
-                    onValueChange={(v) => setSelectedProductId(Number(v))}
-                  >
-                    <SelectTrigger data-testid="select-order-product">
-                      <SelectValue placeholder="Choose product..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {productsData?.data
-                        ?.filter(p => p.availableQuantity > 0)
-                        .map(p => (
-                          <SelectItem key={p.id} value={String(p.id)}>
-                            <span>{p.name}</span>
-                            <span className="text-muted-foreground ml-2 text-xs">
-                              {formatCurrency(p.price)} · {p.availableQuantity} avail.
-                            </span>
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={productComboOpen} onOpenChange={setProductComboOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={productComboOpen}
+                        className="w-full justify-between font-normal text-left h-10 border-input bg-background"
+                        data-testid="select-order-product"
+                      >
+                        {selectedProductId ? (
+                          (() => {
+                            const p = productsData?.data?.find((prod) => prod.id === selectedProductId);
+                            return p ? (
+                              <span className="flex items-center gap-2 truncate">
+                                <span className="font-semibold text-foreground">{p.name}</span>
+                                <span className="text-muted-foreground text-xs font-mono">
+                                  ({formatCurrency(p.price)} · {p.availableQuantity} avail)
+                                </span>
+                              </span>
+                            ) : "Choose Crystal Type...";
+                          })()
+                        ) : (
+                          <span className="text-muted-foreground">Choose or search Crystal Type...</span>
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[320px] sm:w-[400px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search Crystal Type by name..." />
+                        <CommandList className="max-h-[260px] overflow-y-auto">
+                          <CommandEmpty>No matching crystal type found.</CommandEmpty>
+                          <CommandGroup heading="Available Crystal Types">
+                            {productsData?.data
+                              ?.filter(p => p.availableQuantity > 0)
+                              .map(p => (
+                                <CommandItem
+                                  key={p.id}
+                                  value={p.name}
+                                  onSelect={() => {
+                                    setSelectedProductId(p.id);
+                                    setProductComboOpen(false);
+                                  }}
+                                  className="flex items-center justify-between py-2 px-3 cursor-pointer"
+                                >
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-medium text-sm">{p.name}</span>
+                                    <span className="text-xs text-muted-foreground font-mono">{formatCurrency(p.price)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                      {p.availableQuantity} avail
+                                    </span>
+                                    {selectedProductId === p.id && <Check className="w-4 h-4 text-primary ml-1" />}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <Input
                   type="number"
@@ -258,7 +352,7 @@ export default function NewOrder() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-muted/40 border-b">
-                        <th className="text-left px-4 py-2 font-medium text-muted-foreground">Product</th>
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground">CRYSTAL TYPE</th>
                         <th className="text-right px-4 py-2 font-medium text-muted-foreground">Unit Price</th>
                         <th className="text-right px-4 py-2 font-medium text-muted-foreground">Qty</th>
                         <th className="text-right px-4 py-2 font-medium text-muted-foreground">Total</th>
@@ -275,8 +369,9 @@ export default function NewOrder() {
                               type="number"
                               min={1}
                               max={item.availableQuantity}
-                              value={item.quantity}
-                              onChange={(e) => updateItemQuantity(item.productId, Number(e.target.value))}
+                              value={item.quantity === 0 ? "" : item.quantity}
+                              onChange={(e) => updateItemQuantity(item.productId, e.target.value)}
+                              onBlur={() => handleItemQuantityBlur(item.productId)}
                               className="w-16 h-7 text-right text-xs ml-auto"
                             />
                           </td>
@@ -347,8 +442,28 @@ export default function NewOrder() {
 
               <Separator />
 
-              <div className="space-y-2">
-                <Label htmlFor="paidAmount" className="text-xs font-semibold text-foreground/80">Amount Paid (₹)</Label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="paidAmount" className="text-xs font-semibold text-foreground/80">Amount Paid (₹)</Label>
+                  <div className="flex items-center gap-1 bg-muted p-1 rounded-lg border border-border">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("Cash")}
+                      className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${paymentMethod === "Cash" ? "bg-background text-primary shadow-xs border border-border/50" : "text-muted-foreground hover:text-foreground"}`}
+                      data-testid="button-pay-cash"
+                    >
+                      💵 Cash
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("UPI")}
+                      className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${paymentMethod === "UPI" ? "bg-background text-primary shadow-xs border border-border/50" : "text-muted-foreground hover:text-foreground"}`}
+                      data-testid="button-pay-upi"
+                    >
+                      📱 UPI
+                    </button>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <Input
                     id="paidAmount"
@@ -387,14 +502,26 @@ export default function NewOrder() {
                 <p>{items.reduce((s, i) => s + i.quantity, 0)} total units</p>
               </div>
 
-              <Button
-                className="w-full"
-                onClick={handleSubmit}
-                disabled={createOrder.isPending || !customerName.trim() || !customerMobile.trim() || items.length === 0}
-                data-testid="button-submit-order"
-              >
-                {createOrder.isPending ? "Creating..." : "Create Order & Invoice"}
-              </Button>
+              <div className="flex flex-col gap-2 pt-2">
+                <Button
+                  className="w-full font-bold shadow-sm"
+                  onClick={() => handleSubmit(false)}
+                  disabled={createOrder.isPending || !customerName.trim() || !customerMobile.trim() || items.length === 0}
+                  data-testid="button-submit-order"
+                >
+                  {createOrder.isPending ? "Creating..." : "Create Order"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full border-primary/40 text-primary hover:bg-primary/5 font-bold shadow-xs"
+                  onClick={() => handleSubmit(true)}
+                  disabled={createOrder.isPending || !customerName.trim() || !customerMobile.trim() || items.length === 0}
+                  data-testid="button-submit-and-print-order"
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  {createOrder.isPending ? "Creating..." : "Create & Print Invoice"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

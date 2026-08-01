@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, productsTable, ordersTable, inventoryTable } from "@workspace/db";
-import { sql, lt, gte, and } from "drizzle-orm";
+import { sql, lt, lte, gte, and } from "drizzle-orm";
 import { requireAuth, getSessionUser } from "../middlewares/auth";
 
 const router = Router();
@@ -23,7 +23,7 @@ router.get("/dashboard/admin", requireAuth, async (req, res): Promise<void> => {
   const [monthlySalesRow] = await db.select({ sum: sql<number>`coalesce(sum(grand_total::numeric), 0)::float` }).from(ordersTable).where(gte(ordersTable.createdAt, monthStart));
   const [totalUsers] = await db.select({ count: sql<number>`count(*)::int` }).from(usersTable);
   const [outOfStock] = await db.select({ count: sql<number>`count(*)::int` }).from(productsTable).where(sql`available_quantity = 0`);
-  const [lowStock] = await db.select({ count: sql<number>`count(*)::int` }).from(productsTable).where(and(sql`available_quantity > 0`, lt(productsTable.availableQuantity, 10)));
+  const [lowStock] = await db.select({ count: sql<number>`count(*)::int` }).from(productsTable).where(and(sql`available_quantity > 0`, lte(productsTable.availableQuantity, 2)));
 
   res.json({
     totalProducts: totalProducts.count,
@@ -110,7 +110,7 @@ router.get("/dashboard/low-stock", requireAuth, async (req, res): Promise<void> 
   const products = await db
     .select()
     .from(productsTable)
-    .where(lt(productsTable.availableQuantity, 10))
+    .where(lte(productsTable.availableQuantity, 2))
     .orderBy(productsTable.availableQuantity)
     .limit(20);
 

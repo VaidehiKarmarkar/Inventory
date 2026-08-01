@@ -19,4 +19,5 @@ export interface OrderInput {
   referralCharges?: number;
   discount?: number;
   paidAmount?: number;
+  paymentMethod?: string;
 }

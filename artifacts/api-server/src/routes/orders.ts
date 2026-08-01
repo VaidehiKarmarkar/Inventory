@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, ordersTable, orderItemsTable, productsTable, inventoryTable, usersTable } from "@workspace/db";
-import { eq, ilike, gte, lte, and, sql, or } from "drizzle-orm";
+import { db, ordersTable, orderItemsTable, productsTable, inventoryTable, usersTable, orderPaymentsTable } from "@workspace/db";
+import { eq, ilike, gte, lte, and, sql, or, desc } from "drizzle-orm";
 import { requireAuth, getSessionUser } from "../middlewares/auth";
 import {
   CreateOrderBody,
@@ -12,11 +12,34 @@ import {
 
 const router = Router();
 
-function generateInvoiceNumber(): string {
+async function generateInvoiceNumber(): Promise<string> {
   const now = new Date();
-  const yyyymm = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const seq = String(Math.floor(Math.random() * 99999) + 1).padStart(5, "0");
-  return `INV-${yyyymm}-${seq}`;
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const yyyymmdd = `${year}${month}${day}`;
+  const prefix = `INV-${yyyymmdd}-`;
+
+  const existingOrders = await db
+    .select({ invoiceNumber: ordersTable.invoiceNumber })
+    .from(ordersTable)
+    .where(or(
+      ilike(ordersTable.invoiceNumber, `${prefix}%`),
+      ilike(ordersTable.invoiceNumber, `INV—${yyyymmdd}-%`)
+    ));
+
+  let maxSeq = 0;
+  for (const order of existingOrders) {
+    const parts = order.invoiceNumber.split("-");
+    const seqStr = parts[parts.length - 1];
+    const seqNum = parseInt(seqStr, 10);
+    if (!isNaN(seqNum) && seqNum > maxSeq) {
+      maxSeq = seqNum;
+    }
+  }
+
+  const nextSeq = String(maxSeq + 1).padStart(2, "0");
+  return `${prefix}${nextSeq}`;
 }
 
 function numericFields(o: Record<string, unknown>) {
@@ -30,6 +53,7 @@ function numericFields(o: Record<string, unknown>) {
     grandTotal: Number(o.grandTotal),
     paidAmount: Number(o.paidAmount),
     pendingAmount: Number(o.pendingAmount),
+    paymentMethod: (o.paymentMethod as string) || "Cash",
   };
 }
 
@@ -118,6 +142,12 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     items, gstPercentage, referralCharges, discount, paidAmount,
   } = parsed.data;
 
+  const mobileRegex = /^[6789]\d{9}$/;
+  if (!mobileRegex.test(customerMobile.trim())) {
+    res.status(400).json({ error: "Mobile number must be a 10-digit number starting with 6, 7, 8, or 9" });
+    return;
+  }
+
   // Validate stock and compute subtotal
   let subtotal = 0;
   const enrichedItems: Array<{ productId: number; productName: string; quantity: number; unitPrice: number; total: number; prevQty: number }> = [];
@@ -149,7 +179,7 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
   const refCharges = referralCharges ?? 0;
   const disc = discount ?? 0;
   const grandTotal = subtotal + gstAmount + refCharges - disc;
-  const invoiceNumber = generateInvoiceNumber();
+  const invoiceNumber = await generateInvoiceNumber();
 
   const paid = paidAmount !== undefined ? paidAmount : grandTotal;
   const pending = Math.max(0, grandTotal - paid);
@@ -169,6 +199,7 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     grandTotal: String(grandTotal),
     paidAmount: String(paid),
     pendingAmount: String(pending),
+    paymentMethod: (req.body.paymentMethod as string) || "Cash",
     status,
     createdById: user.id,
   }).returning();
@@ -195,6 +226,16 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
       currentQuantity: newQty,
       actionType: "order",
       updatedById: user.id,
+    });
+  }
+
+  if (paid > 0) {
+    await db.insert(orderPaymentsTable).values({
+      orderId: order.id,
+      amount: String(paid),
+      paymentMethod: (req.body.paymentMethod as string) || "Cash",
+      remarks: "Initial payment on order creation",
+      createdById: user.id,
     });
   }
 
@@ -248,6 +289,22 @@ router.get("/orders/:id", requireAuth, async (req, res): Promise<void> => {
     .from(orderItemsTable)
     .where(eq(orderItemsTable.orderId, order.id));
 
+  const payments = await db
+    .select({
+      id: orderPaymentsTable.id,
+      orderId: orderPaymentsTable.orderId,
+      amount: orderPaymentsTable.amount,
+      paymentMethod: orderPaymentsTable.paymentMethod,
+      remarks: orderPaymentsTable.remarks,
+      createdById: orderPaymentsTable.createdById,
+      createdByName: usersTable.name,
+      createdAt: orderPaymentsTable.createdAt,
+    })
+    .from(orderPaymentsTable)
+    .leftJoin(usersTable, eq(orderPaymentsTable.createdById, usersTable.id))
+    .where(eq(orderPaymentsTable.orderId, order.id))
+    .orderBy(desc(orderPaymentsTable.createdAt));
+
   res.json({
     ...numericFields(order as unknown as Record<string, unknown>),
     items: items.map(i => ({
@@ -257,6 +314,97 @@ router.get("/orders/:id", requireAuth, async (req, res): Promise<void> => {
       quantity: i.quantity,
       unitPrice: Number(i.unitPrice),
       total: Number(i.total),
+    })),
+    payments: payments.map(p => ({
+      ...p,
+      amount: Number(p.amount),
+      createdAt: p.createdAt ? p.createdAt.toISOString() : new Date().toISOString(),
+    })),
+  });
+});
+
+router.post("/orders/:id/payments", requireAuth, async (req, res): Promise<void> => {
+  const user = await getSessionUser(req);
+  if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
+
+  const idParam = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const orderId = parseInt(idParam as string, 10);
+  if (isNaN(orderId)) { res.status(400).json({ error: "Invalid order ID" }); return; }
+
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId));
+  if (!order) { res.status(404).json({ error: "Order not found" }); return; }
+
+  const { amount, paymentMethod, remarks } = req.body;
+  const paymentAmt = Number(amount);
+  if (isNaN(paymentAmt) || paymentAmt <= 0) {
+    res.status(400).json({ error: "Valid payment amount is required" });
+    return;
+  }
+
+  if (!remarks || typeof remarks !== "string" || !remarks.trim()) {
+    res.status(400).json({ error: "Remarks / payment note is mandatory" });
+    return;
+  }
+
+  // Record payment history entry
+  await db.insert(orderPaymentsTable).values({
+    orderId,
+    amount: String(paymentAmt),
+    paymentMethod: paymentMethod || "Cash",
+    remarks: remarks.trim(),
+    createdById: user.id,
+  });
+
+  // Calculate updated order balance & status
+  const currentPaid = Number(order.paidAmount ?? 0);
+  const newPaid = currentPaid + paymentAmt;
+  const grandTotal = Number(order.grandTotal);
+  const newPending = Math.max(0, grandTotal - newPaid);
+  const newStatus = newPending > 0 ? "pending" : "completed";
+
+  await db
+    .update(ordersTable)
+    .set({
+      paidAmount: String(newPaid),
+      pendingAmount: String(newPending),
+      status: newStatus,
+      paymentMethod: paymentMethod || order.paymentMethod || "Cash",
+    })
+    .where(eq(ordersTable.id, orderId));
+
+  // Fetch updated order detail
+  const [updatedOrder] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId));
+  const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, orderId));
+  const payments = await db
+    .select({
+      id: orderPaymentsTable.id,
+      orderId: orderPaymentsTable.orderId,
+      amount: orderPaymentsTable.amount,
+      paymentMethod: orderPaymentsTable.paymentMethod,
+      remarks: orderPaymentsTable.remarks,
+      createdById: orderPaymentsTable.createdById,
+      createdByName: usersTable.name,
+      createdAt: orderPaymentsTable.createdAt,
+    })
+    .from(orderPaymentsTable)
+    .leftJoin(usersTable, eq(orderPaymentsTable.createdById, usersTable.id))
+    .where(eq(orderPaymentsTable.orderId, orderId))
+    .orderBy(desc(orderPaymentsTable.createdAt));
+
+  res.json({
+    ...numericFields(updatedOrder as unknown as Record<string, unknown>),
+    items: items.map(i => ({
+      id: i.id,
+      productId: i.productId,
+      productName: i.productName,
+      quantity: i.quantity,
+      unitPrice: Number(i.unitPrice),
+      total: Number(i.total),
+    })),
+    payments: payments.map(p => ({
+      ...p,
+      amount: Number(p.amount),
+      createdAt: p.createdAt ? p.createdAt.toISOString() : new Date().toISOString(),
     })),
   });
 });
@@ -281,96 +429,123 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   // Dynamic import for pdfkit (externalized from esbuild to avoid CJS bundling issues)
   const pdfkitModule = await import("pdfkit");
   const PDFDocument = (pdfkitModule.default ?? pdfkitModule) as typeof pdfkitModule.default;
-  const doc = new PDFDocument({ margin: 50, size: "A4" });
+  const doc = new PDFDocument({ margin: 40, size: "A4" });
 
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `attachment; filename="${order.invoiceNumber}.pdf"`);
+  res.setHeader("Content-Disposition", `inline; filename="${order.invoiceNumber}.pdf"`);
   doc.pipe(res);
 
-  // Header
-  doc.fontSize(24).font("Helvetica-Bold").text("INVOICE", { align: "center" });
-  doc.moveDown(0.5);
-  doc.fontSize(10).font("Helvetica").text("Billing & Inventory Management System", { align: "center" });
-  doc.moveDown(1);
+  // Top Header Banner (A4 printable width = 515pt from X=40 to 555)
+  doc.rect(40, 40, 515, 75).fill("#0f172a");
+  doc.fillColor("#ffffff").fontSize(18).font("Helvetica-Bold").text("Aloha Crystal World", 55, 48);
+  doc.fontSize(8.5).font("Helvetica").fillColor("#94a3b8").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 70);
+  doc.fontSize(8).font("Helvetica-Bold").fillColor("#38bdf8").text("TAX INVOICE", 55, 88);
 
-  // Invoice info
-  doc.fontSize(12).font("Helvetica-Bold").text(`Invoice No: ${order.invoiceNumber}`);
-  doc.font("Helvetica").fontSize(10).text(`Date: ${new Date(order.createdAt).toLocaleDateString("en-IN")}`);
-  doc.text(`Status: ${order.status.toUpperCase()}`);
-  doc.moveDown(1);
+  // Right side header info (Invoice No & Date)
+  const createdDateStr = new Date(order.createdAt).toLocaleDateString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric"
+  });
+  doc.fillColor("#ffffff").fontSize(12).font("Helvetica-Bold").text(order.invoiceNumber, 360, 48, { width: 180, align: "right" });
+  doc.fontSize(9).font("Helvetica").fillColor("#cbd5e1").text(`Date: ${createdDateStr}`, 360, 68, { width: 180, align: "right" });
 
-  // Customer details
-  doc.fontSize(12).font("Helvetica-Bold").text("Bill To:");
-  doc.font("Helvetica").fontSize(10);
-  doc.text(order.customerName);
-  doc.text(`Mobile: ${order.customerMobile}`);
-  if (order.customerEmail) doc.text(`Email: ${order.customerEmail}`);
-  if (order.customerAddress) doc.text(`Address: ${order.customerAddress}`);
-  doc.moveDown(1);
-
-  // Products table header
-  doc.fontSize(11).font("Helvetica-Bold");
-  doc.text("Product", 50, doc.y, { continued: true, width: 200 });
-  doc.text("Qty", 250, doc.y, { continued: true, width: 60, align: "right" });
-  doc.text("Unit Price", 310, doc.y, { continued: true, width: 100, align: "right" });
-  doc.text("Total", 410, doc.y, { width: 100, align: "right" });
-  doc.moveTo(50, doc.y).lineTo(520, doc.y).stroke();
-  doc.moveDown(0.3);
-
-  doc.font("Helvetica").fontSize(10);
-  for (const item of items) {
-    doc.text(item.productName, 50, doc.y, { continued: true, width: 200 });
-    doc.text(String(item.quantity), 250, doc.y, { continued: true, width: 60, align: "right" });
-    doc.text(`₹${Number(item.unitPrice).toFixed(2)}`, 310, doc.y, { continued: true, width: 100, align: "right" });
-    doc.text(`₹${Number(item.total).toFixed(2)}`, 410, doc.y, { width: 100, align: "right" });
-    doc.moveDown(0.3);
+  // Customer Details Box ("Bill To")
+  let currentY = 130;
+  doc.rect(40, currentY, 515, 75).fill("#f8fafc").stroke("#e2e8f0");
+  
+  doc.fillColor("#475569").fontSize(8).font("Helvetica-Bold").text("BILL TO", 55, currentY + 10);
+  doc.fillColor("#0f172a").fontSize(12).font("Helvetica-Bold").text(order.customerName, 55, currentY + 24);
+  
+  doc.fillColor("#334155").fontSize(9).font("Helvetica");
+  let custDetails = `Mobile: ${order.customerMobile}`;
+  if (order.customerEmail) custDetails += `  |  Email: ${order.customerEmail}`;
+  doc.text(custDetails, 55, currentY + 42);
+  if (order.customerAddress) {
+    doc.text(`Address: ${order.customerAddress}`, 55, currentY + 56, { width: 485 });
   }
 
-  doc.moveTo(50, doc.y).lineTo(520, doc.y).stroke();
-  doc.moveDown(0.5);
+  // Items Table Header
+  currentY = 205;
+  doc.rect(40, currentY, 515, 24).fill("#1e293b");
+  doc.fillColor("#ffffff").fontSize(9).font("Helvetica-Bold");
+  doc.text("CRYSTAL TYPE", 50, currentY + 7, { width: 230, align: "left" });
+  doc.text("QTY", 280, currentY + 7, { width: 50, align: "center" });
+  doc.text("UNIT PRICE", 340, currentY + 7, { width: 90, align: "right" });
+  doc.text("TOTAL", 440, currentY + 7, { width: 100, align: "right" });
 
-  // Totals
+  currentY += 24;
+
+  // Table Rows
+  doc.font("Helvetica").fontSize(9);
+  let isAltRow = false;
+
+  for (const item of items) {
+    if (isAltRow) {
+      doc.rect(40, currentY, 515, 24).fill("#f8fafc");
+    }
+    isAltRow = !isAltRow;
+
+    doc.fillColor("#1e293b");
+    doc.text(item.productName, 50, currentY + 7, { width: 230, align: "left" });
+    doc.text(String(item.quantity), 280, currentY + 7, { width: 50, align: "center" });
+    doc.text(`₹${Number(item.unitPrice).toFixed(2)}`, 340, currentY + 7, { width: 90, align: "right" });
+    doc.text(`₹${Number(item.total).toFixed(2)}`, 440, currentY + 7, { width: 100, align: "right" });
+
+    doc.moveTo(40, currentY + 24).lineTo(555, currentY + 24).strokeColor("#e2e8f0").stroke();
+    currentY += 24;
+  }
+
+  currentY += 15;
+
+  // Totals Box (Right Aligned)
+  const totalsBoxX = 320;
+
   const subtotal = Number(order.subtotal);
   const gstAmount = Number(order.gstAmount);
   const gstPct = Number(order.gstPercentage);
   const refCharges = Number(order.referralCharges);
   const discount = Number(order.discount);
   const grandTotal = Number(order.grandTotal);
-
-  const totalsX = 350;
-  doc.fontSize(10);
-  doc.text("Subtotal:", totalsX, doc.y, { continued: true, width: 100 });
-  doc.text(`₹${subtotal.toFixed(2)}`, { width: 70, align: "right" });
-  doc.text(`GST (${gstPct}%):`, totalsX, doc.y, { continued: true, width: 100 });
-  doc.text(`₹${gstAmount.toFixed(2)}`, { width: 70, align: "right" });
-  if (refCharges > 0) {
-    doc.text("Referral Charges:", totalsX, doc.y, { continued: true, width: 100 });
-    doc.text(`₹${refCharges.toFixed(2)}`, { width: 70, align: "right" });
-  }
-  if (discount > 0) {
-    doc.text("Discount:", totalsX, doc.y, { continued: true, width: 100 });
-    doc.text(`-₹${discount.toFixed(2)}`, { width: 70, align: "right" });
-  }
-  doc.moveDown(0.3);
-  doc.moveTo(totalsX, doc.y).lineTo(520, doc.y).stroke();
-  doc.moveDown(0.2);
-  doc.font("Helvetica-Bold").fontSize(12);
-  doc.text("Grand Total:", totalsX, doc.y, { continued: true, width: 100 });
-  doc.text(`₹${grandTotal.toFixed(2)}`, { width: 70, align: "right" });
-
   const paid = Number(order.paidAmount ?? 0);
   const pending = Number(order.pendingAmount ?? 0);
-  doc.font("Helvetica").fontSize(10);
-  doc.text("Paid Amount:", totalsX, doc.y, { continued: true, width: 100 });
-  doc.text(`₹${paid.toFixed(2)}`, { width: 70, align: "right" });
-  if (pending > 0) {
-    doc.fillColor("#b91c1c").font("Helvetica-Bold").text("Pending Balance:", totalsX, doc.y, { continued: true, width: 100 });
-    doc.text(`₹${pending.toFixed(2)}`, { width: 70, align: "right" });
-    doc.fillColor("black");
-  }
-  doc.moveDown(2);
+  const pMethod = order.paymentMethod || "Cash";
 
-  doc.font("Helvetica").fontSize(9).fillColor("gray").text("Thank you for your business!", { align: "center" });
+  const renderTotalRow = (label: string, value: string, isBold = false, color = "#1e293b") => {
+    doc.fillColor(color).font(isBold ? "Helvetica-Bold" : "Helvetica").fontSize(isBold ? 10 : 9);
+    doc.text(label, totalsBoxX, currentY, { width: 130, align: "left" });
+    doc.text(value, totalsBoxX + 130, currentY, { width: 105, align: "right" });
+    currentY += 18;
+  };
+
+  renderTotalRow("Subtotal:", `₹${subtotal.toFixed(2)}`);
+
+  if (gstAmount > 0) {
+    renderTotalRow(`GST (${gstPct}%):`, `₹${gstAmount.toFixed(2)}`);
+  }
+  if (refCharges > 0) {
+    renderTotalRow("Referral Charges:", `₹${refCharges.toFixed(2)}`);
+  }
+  if (discount > 0) {
+    renderTotalRow("Discount:", `-₹${discount.toFixed(2)}`, false, "#059669");
+  }
+
+  doc.moveTo(totalsBoxX, currentY).lineTo(555, currentY).strokeColor("#cbd5e1").stroke();
+  currentY += 6;
+
+  renderTotalRow("Grand Total:", `₹${grandTotal.toFixed(2)}`, true, "#0f172a");
+
+  doc.moveTo(totalsBoxX, currentY).lineTo(555, currentY).strokeColor("#cbd5e1").stroke();
+  currentY += 6;
+
+  renderTotalRow(`Amount Paid (${pMethod}):`, `₹${paid.toFixed(2)}`, true, "#059669");
+
+  if (pending > 0) {
+    renderTotalRow("Pending Balance:", `₹${pending.toFixed(2)}`, true, "#dc2626");
+  }
+
+  // Footer Note
+  currentY = Math.max(currentY + 40, 750);
+  doc.moveTo(40, currentY).lineTo(555, currentY).strokeColor("#e2e8f0").stroke();
+  doc.fillColor("#64748b").fontSize(8).font("Helvetica").text("Thank you for your business! For any queries, please contact customer support.", 40, currentY + 10, { align: "center" });
 
   doc.end();
 });

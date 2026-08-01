@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Plus, Search, Download, Eye, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,6 +22,7 @@ export default function Orders() {
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
 
   const { data, isLoading } = useListOrders(
     {
@@ -71,14 +74,54 @@ export default function Orders() {
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or invoice no..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            data-testid="input-search-orders"
-          />
+          <Popover open={searchDropdownOpen && Boolean(search.trim()) && Boolean(data?.data?.length)} onOpenChange={setSearchDropdownOpen}>
+            <PopoverTrigger asChild>
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+                <Input
+                  placeholder="Search order by customer or invoice no..."
+                  className="pl-9"
+                  value={search}
+                  onFocus={() => setSearchDropdownOpen(true)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                    setSearchDropdownOpen(true);
+                  }}
+                  data-testid="input-search-orders"
+                />
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-[320px] sm:w-[380px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+              <Command>
+                <CommandList className="max-h-[240px] overflow-y-auto">
+                  <CommandEmpty>No matching orders found.</CommandEmpty>
+                  <CommandGroup heading="Matching Orders">
+                    {data?.data?.map((order) => (
+                      <CommandItem
+                        key={order.id}
+                        value={`${order.invoiceNumber} ${order.customerName}`}
+                        onSelect={() => {
+                          setSearch(order.invoiceNumber);
+                          setSearchDropdownOpen(false);
+                        }}
+                        className="flex items-center justify-between py-2 px-3 cursor-pointer"
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-mono text-xs font-bold text-primary">{order.invoiceNumber}</span>
+                          <span className="text-sm font-medium text-foreground">{order.customerName}</span>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-xs font-mono font-semibold">{formatCurrency(order.grandTotal)}</span>
+                          <span className="text-[10px] text-muted-foreground">{formatDate(order.createdAt)}</span>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <label className="text-muted-foreground">From:</label>
@@ -159,6 +202,19 @@ export default function Orders() {
                     <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{order.createdByName ?? "—"}</td>
                     <td className="px-6 py-3">
                       <div className="flex items-center justify-end gap-1">
+                        {order.pendingAmount > 0 && (
+                          <Link href={`/orders/${order.id}`}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 font-bold px-2"
+                              title="Record Payment"
+                              data-testid={`button-record-pay-row-${order.id}`}
+                            >
+                              <Plus className="w-3 h-3 mr-1" /> Pay
+                            </Button>
+                          </Link>
+                        )}
                         <Link href={`/orders/${order.id}`}>
                           <Button size="icon" variant="ghost" data-testid={`button-view-order-${order.id}`}>
                             <Eye className="w-4 h-4" />

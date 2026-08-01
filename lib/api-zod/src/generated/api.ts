@@ -302,7 +302,8 @@ export const CreateOrderBody = zod.object({
   "gstPercentage": zod.number(),
   "referralCharges": zod.number().optional(),
   "discount": zod.number().optional(),
-  "paidAmount": zod.number().optional()
+  "paidAmount": zod.number().optional(),
+  "paymentMethod": zod.string().optional()
 })
 
 
@@ -339,7 +340,23 @@ export const GetOrderResponse = zod.object({
   "quantity": zod.number(),
   "unitPrice": zod.number(),
   "total": zod.number()
-}))
+})),
+  "payments": zod.array(zod.object({
+    "id": zod.number(),
+    "orderId": zod.number(),
+    "amount": zod.number(),
+    "paymentMethod": zod.string(),
+    "remarks": zod.string(),
+    "createdById": zod.number().nullish(),
+    "createdByName": zod.string().nullish(),
+    "createdAt": zod.string()
+  })).optional()
+})
+
+export const RecordPaymentBody = zod.object({
+  "amount": zod.number().min(0.01),
+  "paymentMethod": zod.enum(["Cash", "UPI"]),
+  "remarks": zod.string().min(1, "Remarks are required"),
 })
 
 

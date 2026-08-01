@@ -169,6 +169,7 @@ export interface Order {
   grandTotal: number;
   paidAmount: number;
   pendingAmount: number;
+  paymentMethod?: string;
   status: string;
   /** @nullable */
   createdById?: number | null;
@@ -194,13 +195,33 @@ export interface OrderDetail {
   grandTotal: number;
   paidAmount: number;
   pendingAmount: number;
+  paymentMethod?: string;
   status: string;
+  /** @nullable */
+  createdById?: number | null;
+  /** @nullable */
+  createdAt: string;
+  items: OrderItem[];
+  payments?: OrderPayment[];
+}
+
+export interface OrderPayment {
+  id: number;
+  orderId: number;
+  amount: number;
+  paymentMethod: string;
+  remarks: string;
   /** @nullable */
   createdById?: number | null;
   /** @nullable */
   createdByName?: string | null;
   createdAt: string;
-  items: OrderItem[];
+}
+
+export interface RecordPaymentInput {
+  amount: number;
+  paymentMethod: "Cash" | "UPI";
+  remarks: string;
 }
 
 export interface OrderInput {
@@ -215,6 +236,7 @@ export interface OrderInput {
   referralCharges?: number;
   discount?: number;
   paidAmount?: number;
+  paymentMethod?: string;
 }
 
 export interface OrderListResponse {

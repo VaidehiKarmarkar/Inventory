@@ -134,7 +134,7 @@ The database seeder provisions two default roles for exploring the system:
 
 
 MOM on 1st Aug - 
-**Task & System Updates**
+**Task & System Updates**- Done
 Removed Features / Fields
 
 Created By
@@ -145,29 +145,32 @@ Header Invoice Number (Inv no) along with created date
 
 
 **⚙️ Field & Logic Changes**
-Invoice Number Format: Update format to INV—YYYYMMDD-01(series) 
+Invoice Number Format: Update format to INV—YYYYMMDD-01(series) - Done & verified   
 
-Amount Paid: Add payment method options (Cash or UPI)
+Amount Paid: Add payment method options (Cash or UPI) - Done & verified 
 
-Side Order Details (Nikita's Feedback): Update the side order details section as requested
+Side Order Details (Nikita's Feedback): Update the side order details section as requested -  renovated 
 
-Low Stock Alert Threshold: Lower threshold from 5 to 2
+Low Stock Alert Threshold: Lower threshold from 5 to 2- Done 
 
-Bill Name & Labels: Rename Product to CRYSTAL TYPE
+Bill Name & Labels: Rename Product to CRYSTAL TYPE- done & verified  
 
-GST & Discount Display Logic: If the value is 0, do not print it on the bill
+GST & Discount Display Logic: If the value is 0, do not print it on the bill - Done & verified  
 
-Order history - same row updated with the remarks
+Order history - same row updated with the remarks - Done 
 
-Smart Search with Dropdown- order / new orders / Add product
+Smart Search with Dropdown- order / new orders / Add product - Done & verified 
 
-Product Add - quantity update - deletion Bug to be Fixed
+Product Add - quantity update - deletion Bug to be Fixed - done and verified 
 
-New order- Create order - Print option with same invoice formate 
+New order- Create order - Print option is required and the print formate should be same invoice bill formate - Done and verified
+
+Mobile no should be 10 digital and start with only 7,8,9 and 6 - done and verified 
+
+A4 Size - Print / invocie - Done & verified
 
 Add shop name and address above invoice number -
 Aloha Crystal World
 Vedanta Heights, Shri Colony,
 Dastur Nagar, Amravati.
 Mob - 8369495476
-

@@ -29,6 +29,8 @@ export * from './orderInput';
 export * from './orderItem';
 export * from './orderItemInput';
 export * from './orderListResponse';
+export * from './orderPayment';
+export * from './recordPaymentInput';
 export * from './product';
 export * from './productInput';
 export * from './productListResponse';

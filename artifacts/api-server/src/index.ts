@@ -2,13 +2,26 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { seedIfEmpty } from "./lib/startup-seed";
 
-const rawPort = process.env["PORT"];
+import fs from "node:fs";
+import path from "node:path";
 
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
+if (!process.env["PORT"]) {
+  const envPaths = [
+    path.resolve(process.cwd(), ".env"),
+    path.resolve(process.cwd(), "../../.env"),
+    path.resolve(process.cwd(), "../.env"),
+  ];
+  for (const envPath of envPaths) {
+    if (fs.existsSync(envPath)) {
+      try {
+        process.loadEnvFile(envPath);
+        if (process.env["PORT"]) break;
+      } catch (e) {}
+    }
+  }
 }
+
+const rawPort = process.env["PORT"] || "8080";
 
 const port = Number(rawPort);
 

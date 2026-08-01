@@ -23,6 +23,7 @@ export interface Order {
   grandTotal: number;
   paidAmount: number;
   pendingAmount: number;
+  paymentMethod?: string;
   status: string;
   /** @nullable */
   createdById?: number | null;

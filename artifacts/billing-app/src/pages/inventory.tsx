@@ -123,7 +123,7 @@ export default function Inventory() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40">
-                  <th className="text-left px-6 py-3 font-medium text-muted-foreground">Product</th>
+                  <th className="text-left px-6 py-3 font-medium text-muted-foreground">CRYSTAL TYPE</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Action</th>
                   <th className="text-right px-4 py-3 font-medium text-muted-foreground">Previous</th>
                   <th className="text-right px-4 py-3 font-medium text-muted-foreground">Change</th>

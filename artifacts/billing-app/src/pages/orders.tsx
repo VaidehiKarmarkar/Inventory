@@ -2,7 +2,9 @@ import { useState } from "react";
 import {
   useListOrders,
   getListOrdersQueryKey,
+  type Order,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -12,17 +14,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Download, Eye, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Orders() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+
+  // Quick Payment Modal State
+  const [payTargetOrder, setPayTargetOrder] = useState<Order | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "UPI">("Cash");
+  const [paymentRemarks, setPaymentRemarks] = useState<string>("");
+  const [recordingPayment, setRecordingPayment] = useState(false);
 
   const { data, isLoading } = useListOrders(
     {
@@ -58,28 +71,79 @@ export default function Orders() {
     }
   };
 
+  const openQuickPaymentModal = (order: Order) => {
+    setPayTargetOrder(order);
+    setPaymentAmount(order.pendingAmount ? order.pendingAmount.toString() : "");
+    setPaymentMethod("Cash");
+    setPaymentRemarks("");
+  };
+
+  const handleRecordPaymentSubmit = async () => {
+    if (!payTargetOrder) return;
+    const amt = Number(paymentAmount);
+    if (isNaN(amt) || amt <= 0) {
+      toast({ title: "Please enter a valid payment amount", variant: "destructive" });
+      return;
+    }
+    if (!paymentRemarks.trim()) {
+      toast({
+        title: "Remarks are mandatory",
+        description: "Please enter a payment note or remark before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRecordingPayment(true);
+    try {
+      const res = await fetch(`/api/orders/${payTargetOrder.id}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          amount: amt,
+          paymentMethod,
+          remarks: paymentRemarks.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to record payment");
+      }
+
+      toast({ title: `Payment recorded for ${payTargetOrder.invoiceNumber}` });
+      queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+      setPayTargetOrder(null);
+    } catch (err: unknown) {
+      toast({ title: (err as Error).message || "Failed to record payment", variant: "destructive" });
+    } finally {
+      setRecordingPayment(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Order History</h1>
-          <p className="text-muted-foreground mt-1">View and manage all invoices.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
+          <p className="text-muted-foreground mt-1">Manage sales orders and track pending payments.</p>
         </div>
         <Link href="/orders/new">
-          <Button data-testid="button-new-order">
+          <Button data-testid="button-create-order">
             <Plus className="w-4 h-4 mr-2" /> New Order
           </Button>
         </Link>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
           <Popover open={searchDropdownOpen && Boolean(search.trim()) && Boolean(data?.data?.length)} onOpenChange={setSearchDropdownOpen}>
             <PopoverTrigger asChild>
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
                 <Input
-                  placeholder="Search order by customer or invoice no..."
+                  placeholder="Search invoice no, customer name or mobile..."
                   className="pl-9"
                   value={search}
                   onFocus={() => setSearchDropdownOpen(true)}
@@ -97,23 +161,25 @@ export default function Orders() {
                 <CommandList className="max-h-[240px] overflow-y-auto">
                   <CommandEmpty>No matching orders found.</CommandEmpty>
                   <CommandGroup heading="Matching Orders">
-                    {data?.data?.map((order) => (
+                    {data?.data?.map((o) => (
                       <CommandItem
-                        key={order.id}
-                        value={`${order.invoiceNumber} ${order.customerName}`}
+                        key={o.id}
+                        value={o.invoiceNumber + " " + o.customerName + " " + o.customerMobile}
                         onSelect={() => {
-                          setSearch(order.invoiceNumber);
+                          setSearch(o.invoiceNumber);
                           setSearchDropdownOpen(false);
                         }}
                         className="flex items-center justify-between py-2 px-3 cursor-pointer"
                       >
                         <div className="flex flex-col gap-0.5">
-                          <span className="font-mono text-xs font-bold text-primary">{order.invoiceNumber}</span>
-                          <span className="text-sm font-medium text-foreground">{order.customerName}</span>
+                          <span className="font-mono font-bold text-xs text-primary">{o.invoiceNumber}</span>
+                          <span className="text-xs font-semibold text-foreground">{o.customerName}</span>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="text-xs font-mono font-semibold">{formatCurrency(order.grandTotal)}</span>
-                          <span className="text-[10px] text-muted-foreground">{formatDate(order.createdAt)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-bold">{formatCurrency(o.grandTotal)}</span>
+                          <Badge variant={o.pendingAmount > 0 ? "secondary" : "outline"} className="text-[10px]">
+                            {o.pendingAmount > 0 ? "Pending" : "Paid"}
+                          </Badge>
                         </div>
                       </CommandItem>
                     ))}
@@ -123,19 +189,23 @@ export default function Orders() {
             </PopoverContent>
           </Popover>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <label className="text-muted-foreground">From:</label>
-          <Input type="date" className="w-36" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} />
+
+        <div className="flex gap-2">
+          <Input
+            type="date"
+            placeholder="From Date"
+            value={dateFrom}
+            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+            className="w-40"
+          />
+          <Input
+            type="date"
+            placeholder="To Date"
+            value={dateTo}
+            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+            className="w-40"
+          />
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <label className="text-muted-foreground">To:</label>
-          <Input type="date" className="w-36" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} />
-        </div>
-        {(dateFrom || dateTo || search) && (
-          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setDateFrom(""); setDateTo(""); setPage(1); }}>
-            Clear
-          </Button>
-        )}
       </div>
 
       <Card>
@@ -171,7 +241,9 @@ export default function Orders() {
                 {data.data.map((order) => (
                   <tr key={order.id} className={`hover:bg-muted/30 transition-colors ${order.pendingAmount > 0 ? "bg-amber-500/[0.02]" : ""}`} data-testid={`row-order-${order.id}`}>
                     <td className="px-6 py-3">
-                      <span className="font-mono text-xs font-medium text-primary">{order.invoiceNumber}</span>
+                      <Link href={`/orders/${order.id}`}>
+                        <span className="font-mono text-xs font-bold text-primary hover:underline cursor-pointer">{order.invoiceNumber}</span>
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
                       <div>
@@ -203,17 +275,16 @@ export default function Orders() {
                     <td className="px-6 py-3">
                       <div className="flex items-center justify-end gap-1">
                         {order.pendingAmount > 0 && (
-                          <Link href={`/orders/${order.id}`}>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 font-bold px-2"
-                              title="Record Payment"
-                              data-testid={`button-record-pay-row-${order.id}`}
-                            >
-                              <Plus className="w-3 h-3 mr-1" /> Pay
-                            </Button>
-                          </Link>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 font-bold px-2 cursor-pointer"
+                            title="Record Payment"
+                            onClick={() => openQuickPaymentModal(order)}
+                            data-testid={`button-record-pay-row-${order.id}`}
+                          >
+                            <Plus className="w-3 h-3 mr-1" /> Pay
+                          </Button>
                         )}
                         <Link href={`/orders/${order.id}`}>
                           <Button size="icon" variant="ghost" data-testid={`button-view-order-${order.id}`}>
@@ -248,6 +319,82 @@ export default function Orders() {
           </div>
         </div>
       )}
+
+      {/* Quick Record Payment Dialog */}
+      <Dialog open={!!payTargetOrder} onOpenChange={(open) => { if (!open) setPayTargetOrder(null); }}>
+        {payTargetOrder && (
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Record Payment for {payTargetOrder.invoiceNumber}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex justify-between items-center text-xs">
+                <span className="font-semibold text-amber-700 dark:text-amber-300">Pending Balance</span>
+                <span className="font-bold text-sm text-amber-600 dark:text-amber-400">{formatCurrency(payTargetOrder.pendingAmount)}</span>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="quickPayAmount" className="text-xs font-semibold">Payment Amount (₹) <span className="text-destructive">*</span></Label>
+                <Input
+                  id="quickPayAmount"
+                  type="number"
+                  min={0.01}
+                  step={0.01}
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">Payment Method <span className="text-destructive">*</span></Label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("Cash")}
+                    className={`flex-1 py-2 text-xs font-bold rounded-md border transition-all cursor-pointer ${paymentMethod === "Cash" ? "bg-primary text-primary-foreground border-primary shadow-xs" : "bg-background text-muted-foreground hover:text-foreground"}`}
+                  >
+                    💵 Cash
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("UPI")}
+                    className={`flex-1 py-2 text-xs font-bold rounded-md border transition-all cursor-pointer ${paymentMethod === "UPI" ? "bg-primary text-primary-foreground border-primary shadow-xs" : "bg-background text-muted-foreground hover:text-foreground"}`}
+                  >
+                    📱 UPI
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="quickPayRemarks" className="text-xs font-semibold flex items-center gap-1">
+                  <span>Remarks / Payment Note</span>
+                  <span className="text-destructive font-bold">* (Mandatory)</span>
+                </Label>
+                <Textarea
+                  id="quickPayRemarks"
+                  rows={3}
+                  value={paymentRemarks}
+                  onChange={(e) => setPaymentRemarks(e.target.value)}
+                  placeholder="Required: e.g. Received GPay payment transaction #98765 or Cash received..."
+                  className="text-xs"
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setPayTargetOrder(null)} type="button">Cancel</Button>
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                onClick={handleRecordPaymentSubmit}
+                disabled={recordingPayment || !paymentRemarks.trim()}
+                data-testid="button-submit-quick-payment"
+              >
+                {recordingPayment ? "Saving..." : "Save Payment Record"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

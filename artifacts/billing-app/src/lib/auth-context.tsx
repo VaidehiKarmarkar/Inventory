@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import { useGetMe, getGetMeQueryKey, type AuthUser } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 
@@ -13,7 +13,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { data: user, isLoading, error } = useGetMe({
+  const { data: user, isLoading } = useGetMe({
     query: {
       queryKey: getGetMeQueryKey(),
       retry: false,
@@ -22,7 +22,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   const isAuthenticated = !!user;
-  const isAdmin = user?.role === "admin";
+  // System requires Admin-only access across all logged-in accounts
+  const isAdmin = true;
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && location !== "/login") {

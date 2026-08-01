@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, usersTable, productsTable, ordersTable, inventoryTable } from "@workspace/db";
-import { sql, lt, lte, gte, and } from "drizzle-orm";
+import { db, usersTable, productsTable, ordersTable } from "@workspace/db";
+import { sql, lte, gte, and } from "drizzle-orm";
 import { requireAuth, getSessionUser } from "../middlewares/auth";
 
 const router = Router();
@@ -34,6 +34,93 @@ router.get("/dashboard/admin", requireAuth, async (req, res): Promise<void> => {
     totalUsers: totalUsers.count,
     outOfStockCount: outOfStock.count,
     lowStockCount: lowStock.count,
+  });
+});
+
+router.get("/dashboard/analytics", requireAuth, async (req, res): Promise<void> => {
+  const user = await getSessionUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const { dateFrom, dateTo } = req.query;
+  const whereClauses: string[] = [];
+
+  if (dateFrom && typeof dateFrom === "string" && dateFrom.trim()) {
+    whereClauses.push(`o.created_at >= '${dateFrom.trim()} 00:00:00'`);
+  }
+  if (dateTo && typeof dateTo === "string" && dateTo.trim()) {
+    whereClauses.push(`o.created_at <= '${dateTo.trim()} 23:59:59'`);
+  }
+
+  const orderWhereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+  // Month-wise aggregation
+  const monthWiseRaw = await db.execute(sql.raw(`
+    SELECT
+      to_char(o.created_at, 'YYYY-MM') AS month_key,
+      to_char(o.created_at, 'Mon YYYY') AS month_label,
+      count(*)::int AS order_count,
+      coalesce(sum(o.grand_total::numeric), 0)::float AS revenue,
+      coalesce(sum(o.paid_amount::numeric), 0)::float AS paid_amount,
+      coalesce(sum(o.pending_amount::numeric), 0)::float AS pending_amount
+    FROM orders o
+    ${orderWhereSql}
+    GROUP BY to_char(o.created_at, 'YYYY-MM'), to_char(o.created_at, 'Mon YYYY')
+    ORDER BY month_key ASC
+    LIMIT 12
+  `));
+
+  // Product-wise sales aggregation
+  const productWiseRaw = await db.execute(sql.raw(`
+    SELECT
+      oi.product_id,
+      oi.product_name,
+      sum(oi.quantity)::int AS total_quantity_sold,
+      coalesce(sum(oi.total::numeric), 0)::float AS total_revenue
+    FROM order_items oi
+    JOIN orders o ON oi.order_id = o.id
+    ${orderWhereSql}
+    GROUP BY oi.product_id, oi.product_name
+    ORDER BY total_quantity_sold DESC
+    LIMIT 8
+  `));
+
+  // Summary Totals
+  const summaryRaw = await db.execute(sql.raw(`
+    SELECT
+      count(*)::int AS total_orders,
+      coalesce(sum(grand_total::numeric), 0)::float AS total_revenue,
+      coalesce(sum(paid_amount::numeric), 0)::float AS total_paid,
+      coalesce(sum(pending_amount::numeric), 0)::float AS total_pending
+    FROM orders o
+    ${orderWhereSql}
+  `));
+
+  const summaryRow = (summaryRaw.rows[0] as Record<string, unknown>) ?? { total_orders: 0, total_revenue: 0, total_paid: 0, total_pending: 0 };
+
+  res.json({
+    monthWise: monthWiseRaw.rows.map(r => ({
+      monthKey: String(r.month_key),
+      monthLabel: String(r.month_label),
+      orderCount: Number(r.order_count),
+      revenue: Number(r.revenue),
+      paidAmount: Number(r.paid_amount),
+      pendingAmount: Number(r.pending_amount),
+    })),
+    productWise: productWiseRaw.rows.map(r => ({
+      productId: Number(r.product_id),
+      productName: String(r.product_name),
+      totalQuantitySold: Number(r.total_quantity_sold),
+      totalRevenue: Number(r.total_revenue),
+    })),
+    summary: {
+      totalOrders: Number(summaryRow.total_orders ?? 0),
+      totalRevenue: Number(summaryRow.total_revenue ?? 0),
+      totalPaid: Number(summaryRow.total_paid ?? 0),
+      totalPending: Number(summaryRow.total_pending ?? 0),
+    },
   });
 });
 

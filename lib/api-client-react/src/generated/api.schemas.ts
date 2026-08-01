@@ -314,9 +314,10 @@ limit?: number;
 };
 
 export type ListInventoryParams = {
-productId?: number;
-page?: number;
-limit?: number;
+  productId?: number;
+  search?: string;
+  page?: number;
+  limit?: number;
 };
 
 export type ListOrdersParams = {

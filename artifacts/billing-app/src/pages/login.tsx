@@ -131,16 +131,11 @@ export default function Login() {
                 <div className="absolute top-0 right-0 p-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-bl-lg">
                   <ShieldAlert className="w-3.5 h-3.5" />
                 </div>
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2.5">Demo Credentials:</p>
-                <div className="grid grid-cols-2 gap-3 text-xs leading-relaxed">
-                  <div className="bg-white dark:bg-zinc-950 p-2.5 rounded-lg border border-slate-100 dark:border-zinc-800">
-                    <span className="font-bold text-[10px] uppercase text-indigo-500 tracking-wider">Admin Role</span>
-                    <div className="font-semibold text-slate-700 dark:text-slate-300 mt-1 font-mono">admin / admin123</div>
-                  </div>
-                  <div className="bg-white dark:bg-zinc-950 p-2.5 rounded-lg border border-slate-100 dark:border-zinc-800">
-                    <span className="font-bold text-[10px] uppercase text-indigo-500 tracking-wider">Staff Role</span>
-                    <div className="font-semibold text-slate-700 dark:text-slate-300 mt-1 font-mono">user / user123</div>
-                  </div>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2.5">System Access Control:</p>
+                <div className="bg-white dark:bg-zinc-950 p-3 rounded-lg border border-slate-100 dark:border-zinc-800 text-xs">
+                  <span className="font-bold text-[10px] uppercase text-indigo-500 tracking-wider">Admin Privilege Required</span>
+                  <div className="font-semibold text-slate-700 dark:text-slate-300 mt-1 font-mono">admin / admin123</div>
+                  <p className="text-[11px] text-muted-foreground mt-1">Non-admin user access disabled. Full management active.</p>
                 </div>
               </div>
             </CardContent>

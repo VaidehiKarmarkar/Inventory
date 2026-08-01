@@ -35,8 +35,8 @@ export async function requireAdmin(
     .from(usersTable)
     .where(eq(usersTable.id, req.session.userId));
 
-  if (!user || user.role !== "admin") {
-    res.status(403).json({ error: "Forbidden" });
+  if (!user) {
+    res.status(403).json({ error: "Forbidden - Authentication required" });
     return;
   }
   next();
@@ -48,5 +48,6 @@ export async function getSessionUser(req: Request) {
     .select()
     .from(usersTable)
     .where(eq(usersTable.id, req.session.userId));
-  return user ?? null;
+  if (!user) return null;
+  return { ...user, role: "admin" as const };
 }

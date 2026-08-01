@@ -438,8 +438,7 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   // Top Header Banner (A4 printable width = 515pt from X=40 to 555)
   doc.rect(40, 40, 515, 75).fill("#0f172a");
   doc.fillColor("#ffffff").fontSize(18).font("Helvetica-Bold").text("Aloha Crystal World", 55, 48);
-  doc.fontSize(8.5).font("Helvetica").fillColor("#94a3b8").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 70);
-  doc.fontSize(8).font("Helvetica-Bold").fillColor("#38bdf8").text("TAX INVOICE", 55, 88);
+  doc.fontSize(8.5).font("Helvetica").fillColor("#94a3b8").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 72);
 
   // Right side header info (Invoice No & Date)
   const createdDateStr = new Date(order.createdAt).toLocaleDateString("en-IN", {
@@ -448,11 +447,11 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   doc.fillColor("#ffffff").fontSize(12).font("Helvetica-Bold").text(order.invoiceNumber, 360, 48, { width: 180, align: "right" });
   doc.fontSize(9).font("Helvetica").fillColor("#cbd5e1").text(`Date: ${createdDateStr}`, 360, 68, { width: 180, align: "right" });
 
-  // Customer Details Box ("Bill To")
+  // Customer Details Box ("Mr. / Mrs.")
   let currentY = 130;
   doc.rect(40, currentY, 515, 75).fill("#f8fafc").stroke("#e2e8f0");
   
-  doc.fillColor("#475569").fontSize(8).font("Helvetica-Bold").text("BILL TO", 55, currentY + 10);
+  doc.fillColor("#475569").fontSize(8).font("Helvetica-Bold").text("Mr. / Mrs.", 55, currentY + 10);
   doc.fillColor("#0f172a").fontSize(12).font("Helvetica-Bold").text(order.customerName, 55, currentY + 24);
   
   doc.fillColor("#334155").fontSize(9).font("Helvetica");
@@ -542,10 +541,19 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
     renderTotalRow("Pending Balance:", `₹${pending.toFixed(2)}`, true, "#dc2626");
   }
 
+  // Signature Block (Right aligned, above footer)
+  const sigY = Math.max(currentY + 40, 680);
+  const sigX = 370;
+  const sigWidth = 185;
+
+  doc.moveTo(sigX, sigY).lineTo(sigX + sigWidth, sigY).strokeColor("#94a3b8").stroke();
+  doc.fillColor("#334155").font("Helvetica-Bold").fontSize(9).text("Authorized Signature", sigX, sigY + 6, { width: sigWidth, align: "center" });
+  doc.fillColor("#94a3b8").font("Helvetica").fontSize(8).text("(Aloha Crystal World)", sigX, sigY + 18, { width: sigWidth, align: "center" });
+
   // Footer Note
-  currentY = Math.max(currentY + 40, 750);
+  currentY = Math.max(sigY + 45, 760);
   doc.moveTo(40, currentY).lineTo(555, currentY).strokeColor("#e2e8f0").stroke();
-  doc.fillColor("#64748b").fontSize(8).font("Helvetica").text("Thank you for your business! For any queries, please contact customer support.", 40, currentY + 10, { align: "center" });
+  doc.fillColor("#64748b").fontSize(8).font("Helvetica").text("Thank you for your business! For any queries, please contact customer support.", 40, currentY + 8, { align: "center" });
 
   doc.end();
 });

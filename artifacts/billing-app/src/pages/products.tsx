@@ -47,7 +47,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Edit, Trash2, Package, ChevronsUpDown, Check, X } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const productSchema = z.object({
@@ -69,9 +69,10 @@ export default function Products() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
 
+  const limit = 10;
   const { data, isLoading } = useListProducts(
-    { search: search || undefined, page, limit: 15 },
-    { query: { queryKey: getListProductsQueryKey({ search: search || undefined, page, limit: 15 }) } }
+    { search: search || undefined, page, limit },
+    { query: { queryKey: getListProductsQueryKey({ search: search || undefined, page, limit }) } }
   );
 
   const { data: allProductsData } = useListProducts(
@@ -157,95 +158,97 @@ export default function Products() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Popover open={searchDropdownOpen} onOpenChange={setSearchDropdownOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={searchDropdownOpen}
-                className="w-full justify-between font-normal text-muted-foreground bg-background hover:bg-accent/50 shadow-xs h-10 px-3"
-                data-testid="button-search-products-combobox"
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <Search className="w-4 h-4 shrink-0 opacity-50" />
-                  <span className={search ? "text-foreground font-medium truncate" : "truncate"}>
-                    {search || "Smart Search Crystal Type..."}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Instant Search Bar */}
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+          <Input
+            placeholder="Search crystal type name or description..."
+            className="pl-9 pr-8"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            data-testid="input-search-products-instant"
+          />
+          {search && (
+            <span
+              onClick={() => { setSearch(""); setPage(1); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground cursor-pointer z-10"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </span>
+          )}
+        </div>
+
+        {/* Quick Select Combobox Dropdown */}
+        <Popover open={searchDropdownOpen} onOpenChange={setSearchDropdownOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={searchDropdownOpen}
+              className="w-full sm:w-72 justify-between font-normal text-muted-foreground bg-background hover:bg-accent/50 shadow-xs h-10 px-3"
+              data-testid="button-search-products-combobox"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <Package className="w-4 h-4 shrink-0 opacity-50 text-primary" />
+                <span className={search ? "text-foreground font-medium truncate" : "truncate"}>
+                  {search || "Choose Crystal Type..."}
+                </span>
+              </div>
+              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50 ml-1" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[320px] sm:w-[380px] p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Auto-suggest crystal type..." />
+              <CommandList className="max-h-[260px] overflow-y-auto">
+                <CommandEmpty>No matching crystal types found.</CommandEmpty>
+                <CommandGroup heading="All Crystal Types">
                   {search && (
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
+                    <CommandItem
+                      value="--clear-all-search-filter--"
+                      onSelect={() => {
                         setSearch("");
                         setPage(1);
+                        setSearchDropdownOpen(false);
                       }}
-                      className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-                      title="Clear search"
+                      className="text-xs text-primary font-semibold py-1.5 px-3 cursor-pointer border-b bg-muted/30"
                     >
-                      <X className="w-3.5 h-3.5" />
-                    </span>
+                      Show All Products (Clear Search)
+                    </CommandItem>
                   )}
-                  <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50 ml-1" />
-                </div>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[320px] sm:w-[400px] p-0" align="start">
-              <Command>
-                <CommandInput
-                  placeholder="Search crystal type name..."
-                  onValueChange={(val: string) => {
-                    setSearch(val);
-                    setPage(1);
-                  }}
-                />
-                <CommandList className="max-h-[260px] overflow-y-auto">
-                  <CommandEmpty>No matching crystal types found.</CommandEmpty>
-                  <CommandGroup heading="All Crystal Types">
-                    {search && (
-                      <CommandItem
-                        value="--clear-all-search-filter--"
-                        onSelect={() => {
-                          setSearch("");
-                          setPage(1);
-                          setSearchDropdownOpen(false);
-                        }}
-                        className="text-xs text-primary font-semibold py-1.5 px-3 cursor-pointer border-b bg-muted/30"
-                      >
-                        Show All Products (Clear Search)
-                      </CommandItem>
-                    )}
-                    {allProductsData?.data?.map((p) => (
-                      <CommandItem
-                        key={p.id}
-                        value={p.name}
-                        onSelect={() => {
-                          setSearch(p.name);
-                          setPage(1);
-                          setSearchDropdownOpen(false);
-                        }}
-                        className="flex items-center justify-between py-2 px-3 cursor-pointer"
-                      >
-                        <div className="flex flex-col gap-0.5 max-w-[200px]">
-                          <span className="font-semibold text-sm text-foreground truncate">{p.name}</span>
-                          <span className="text-xs text-muted-foreground truncate">{p.description || "Crystal Type"}</span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs font-mono font-bold text-primary">{formatCurrency(p.price)}</span>
-                          <Badge variant={p.availableQuantity === 0 ? "destructive" : p.availableQuantity <= 2 ? "secondary" : "outline"} className="text-[10px]">
-                            {p.availableQuantity} left
-                          </Badge>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
+                  {allProductsData?.data?.map((p) => (
+                    <CommandItem
+                      key={p.id}
+                      value={p.name}
+                      onSelect={() => {
+                        setSearch(p.name);
+                        setPage(1);
+                        setSearchDropdownOpen(false);
+                      }}
+                      className="flex items-center justify-between py-2 px-3 cursor-pointer"
+                    >
+                      <div className="flex flex-col gap-0.5 max-w-[200px]">
+                        <span className="font-semibold text-sm text-foreground truncate">{p.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">{p.description || "Crystal Type"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-mono font-bold text-primary">{formatCurrency(p.price)}</span>
+                        <Badge variant={p.availableQuantity === 0 ? "destructive" : p.availableQuantity <= 2 ? "secondary" : "outline"} className="text-[10px]">
+                          {p.availableQuantity} left
+                        </Badge>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <Card>
@@ -300,12 +303,47 @@ export default function Products() {
         </CardContent>
       </Card>
 
-      {data && data.total > 15 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>Showing {(page - 1) * 15 + 1}–{Math.min(page * 15, data.total)} of {data.total}</span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
-            <Button variant="outline" size="sm" disabled={page * 15 >= data.total} onClick={() => setPage(p => p + 1)}>Next</Button>
+      {/* Clickable Page Numbers Pagination */}
+      {data && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-muted-foreground pt-2">
+          <span>Showing {data.total > 0 ? (page - 1) * limit + 1 : 0}–{Math.min(page * limit, data.total)} of {data.total} products</span>
+          
+          <div className="flex items-center gap-1.5" data-testid="products-pagination-numbers">
+            <span className="text-xs font-semibold mr-1">Pages:</span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 cursor-pointer"
+              disabled={page === 1}
+              onClick={() => setPage(p => p - 1)}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+
+            {Array.from({ length: Math.max(1, Math.ceil(data.total / limit)) }, (_, i) => i + 1).map((pNum) => (
+              <Button
+                key={pNum}
+                variant={page === pNum ? "default" : "outline"}
+                size="sm"
+                className={`h-8 min-w-8 px-2 text-xs font-extrabold cursor-pointer transition-all ${
+                  page === pNum ? "shadow-sm bg-primary text-primary-foreground font-bold" : "hover:bg-accent"
+                }`}
+                onClick={() => setPage(pNum)}
+                data-testid={`button-products-page-${pNum}`}
+              >
+                {pNum}
+              </Button>
+            ))}
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 cursor-pointer"
+              disabled={page >= Math.max(1, Math.ceil(data.total / limit))}
+              onClick={() => setPage(p => p + 1)}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       )}

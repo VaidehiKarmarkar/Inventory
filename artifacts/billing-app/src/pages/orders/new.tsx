@@ -5,10 +5,11 @@ import {
   getListOrdersQueryKey,
   getListProductsQueryKey,
   type OrderInput,
+  type Order,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, ArrowLeft, ShoppingCart, ChevronsUpDown, Check, Printer } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, ArrowLeft, ShoppingCart, ChevronsUpDown, Check, Printer, Download, Eye, Edit3, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface OrderLineItem {
@@ -42,8 +44,13 @@ export default function NewOrder() {
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [productComboOpen, setProductComboOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [discount, setDiscount] = useState<string>("");
   const [customPaidAmount, setCustomPaidAmount] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<"Cash" | "UPI">("Cash");
+
+  // Confirmation screen state
+  const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const { data: productsData } = useListProducts(
     { limit: 100 },
@@ -116,9 +123,26 @@ export default function NewOrder() {
     }));
   };
 
+  const resetForm = () => {
+    setCustomerName("");
+    setCustomerMobile("");
+    setCustomerEmail("");
+    setCustomerAddress("");
+    setGstPercentage(18);
+    setItems([]);
+    setSelectedProductId(null);
+    setQuantity(1);
+    setDiscount("");
+    setCustomPaidAmount("");
+    setPaymentMethod("Cash");
+    setCreatedOrder(null);
+  };
+
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const gstAmount = subtotal * (gstPercentage / 100);
-  const grandTotal = subtotal + gstAmount;
+  const discNum = discount !== "" ? Math.max(0, Number(discount)) : 0;
+  const subtotalAfterDisc = Math.max(0, subtotal - discNum);
+  const gstAmount = subtotalAfterDisc * (gstPercentage / 100);
+  const grandTotal = subtotalAfterDisc + gstAmount;
 
   const handleSubmit = (andPrint = false) => {
     if (!customerName.trim()) {
@@ -153,6 +177,7 @@ export default function NewOrder() {
       customerEmail: customerEmail.trim() || undefined,
       customerAddress: customerAddress.trim() || undefined,
       gstPercentage,
+      discount: discNum,
       paidAmount: customPaidAmount !== "" ? Number(customPaidAmount) : undefined,
       paymentMethod,
       items: items.map(i => ({
@@ -169,6 +194,7 @@ export default function NewOrder() {
           toast({ title: `Order ${order.invoiceNumber} created!` });
           queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
           queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+          setCreatedOrder(order);
 
           if (andPrint) {
             try {
@@ -179,18 +205,12 @@ export default function NewOrder() {
                 const printWin = window.open(url, "_blank");
                 if (printWin) {
                   printWin.focus();
-                } else {
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `${order.invoiceNumber}.pdf`;
-                  a.click();
                 }
               }
             } catch (e) {
               console.error("Failed to print invoice:", e);
             }
           }
-          setLocation(`/orders/${order.id}`);
         },
         onError: (err: unknown) => {
           const msg = (err as { data?: { error?: string } })?.data?.error || "Failed to create order";
@@ -199,6 +219,117 @@ export default function NewOrder() {
       }
     );
   };
+
+  const handlePrint = async (orderId: number) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/invoice`, { credentials: "include" });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const printWin = window.open(url, "_blank");
+      if (printWin) printWin.focus();
+    } catch {
+      toast({ title: "Failed to open print window", variant: "destructive" });
+    }
+  };
+
+  const handleDownload = async (orderId: number, invoiceNumber: string) => {
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/invoice`, { credentials: "include" });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${invoiceNumber}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ title: "Failed to download invoice", variant: "destructive" });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // If order was created, render the Order Confirmation & Summary Screen with Edit option
+  if (createdOrder) {
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto">
+        <Card className="border-emerald-500/30 bg-emerald-500/[0.02]">
+          <CardHeader className="text-center pb-4">
+            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-2">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+              Order Created & Invoice Generated!
+            </CardTitle>
+            <p className="text-muted-foreground text-sm font-mono mt-1">{createdOrder.invoiceNumber}</p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/40 p-4 rounded-xl border">
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase">Customer</p>
+                <p className="font-bold text-base mt-0.5">{createdOrder.customerName}</p>
+                <p className="text-xs text-muted-foreground">{createdOrder.customerMobile}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-bold text-muted-foreground uppercase">Grand Total & Status</p>
+                <p className="font-extrabold text-lg text-primary mt-0.5">{formatCurrency(createdOrder.grandTotal)}</p>
+                <Badge variant={createdOrder.pendingAmount > 0 ? "outline" : "default"} className={createdOrder.pendingAmount > 0 ? "bg-amber-500/10 text-amber-600 border-amber-500/30" : "bg-emerald-600"}>
+                  {createdOrder.pendingAmount > 0 ? `Pending: ${formatCurrency(createdOrder.pendingAmount)}` : "Fully Paid"}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="border-primary/40 text-primary font-bold hover:bg-primary/5 cursor-pointer"
+                onClick={() => setCreatedOrder(null)}
+                data-testid="button-edit-summary-order"
+              >
+                <Edit3 className="w-4 h-4 mr-2" /> Edit Order
+              </Button>
+
+              <Button
+                variant="outline"
+                className="font-bold cursor-pointer"
+                onClick={() => handlePrint(createdOrder.id)}
+                data-testid="button-print-summary-order"
+              >
+                <Printer className="w-4 h-4 mr-2" /> Print Invoice
+              </Button>
+
+              <Button
+                variant="outline"
+                disabled={downloading}
+                onClick={() => handleDownload(createdOrder.id, createdOrder.invoiceNumber)}
+                data-testid="button-download-summary-order"
+              >
+                <Download className="w-4 h-4 mr-2" /> Download PDF
+              </Button>
+
+              <Button
+                onClick={() => setLocation(`/orders/${createdOrder.id}`)}
+                data-testid="button-view-summary-order"
+              >
+                <Eye className="w-4 h-4 mr-2" /> View Order Details
+              </Button>
+
+              <Button
+                variant="secondary"
+                onClick={resetForm}
+                data-testid="button-create-another-order"
+              >
+                <Plus className="w-4 h-4 mr-2" /> Create Another Order
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl">
@@ -412,6 +543,27 @@ export default function NewOrder() {
                   <span>Subtotal</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <Label htmlFor="discountInput" className="text-xs text-muted-foreground font-medium">Discount (₹)</Label>
+                  <Input
+                    id="discountInput"
+                    type="number"
+                    min={0}
+                    max={subtotal}
+                    step={0.01}
+                    placeholder="0.00"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                    className="h-7 w-28 text-right text-xs"
+                    data-testid="input-order-discount"
+                  />
+                </div>
+                {discNum > 0 && (
+                  <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span>Discount Applied</span>
+                    <span>-{formatCurrency(discNum)}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <span>GST</span>

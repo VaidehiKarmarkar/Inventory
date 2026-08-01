@@ -46,13 +46,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Orders", href: "/orders", icon: ShoppingCart },
-    ...(isAdmin
-      ? [
-          { label: "Products", href: "/products", icon: Package },
-          { label: "Inventory Log", href: "/inventory", icon: History },
-          { label: "Staff & Users", href: "/users", icon: UserSquare },
-        ]
-      : []),
+    { label: "Products", href: "/products", icon: Package },
+    { label: "Inventory Log", href: "/inventory", icon: History },
+    { label: "Staff & Users", href: "/users", icon: UserSquare },
   ];
 
   const closeSidebar = () => setSidebarOpen(false);

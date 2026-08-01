@@ -177,6 +177,30 @@ Mob - 8369495476
 
 
 Remove ** Tax Invoice** from Bill
-
 Add date field while editing bill
 
+. Bill & Print Customizations
+Signature Block: At the bottom of the bill, add a signature line with (Aloha Crystal World) printed in a light/muted color underneath it.
+
+Customer Field Label: Change "Bill To" to "Mr. / Mrs."
+
+Discount Field: Add the Discount field while create a order and to the bill layout as a Required print item (currently missing) if discount value is zero, then don't print it on the bill.
+
+⚙️ 2. UI & Navigation Updates- ----done & verified 
+Date Filter Dropdown: Add a dropdown menu with quick filters for "This Month" and "Previous Month" and give some sale dashboard month wise order and revenue.Also add product wise etc.
+
+Order & Invoice Summary Screen: Add an "Edit" option on the confirmation page that appears right after clicking Create Order and Invoice.
+
+Inventory Log Pagination: Replace the "Previous / Next" buttons with standard Page Numbers (e.g., 1, 2, 3...) with link so that user can click on number and move to page.
+
+🔍 3. System Features & Access Control- ----done & verified 
+Product Search: Add a Smart Search bar (instant filtering/auto-suggest) and dropdown in the All Products section.
+
+User Access Control: Remove User-level access completely—the system should now require Admin-only access.
+
+Dynamic Summary Cards & Detailed Tables:
+
+Filtered metrics cards displaying Total Orders, Total Revenue, Total Paid Amount, and Pending Balance for the selected date range.
+Month-wise and Product-wise breakdown tables.----done & verified 
+
+TAX INVOICE - done & verified

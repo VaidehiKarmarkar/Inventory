@@ -12,12 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Download, Eye, ShoppingCart } from "lucide-react";
+import { Plus, Search, Download, Eye, ShoppingCart, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Orders() {
@@ -26,6 +27,7 @@ export default function Orders() {
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [datePreset, setDatePreset] = useState("all");
   const [page, setPage] = useState(1);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
@@ -37,20 +39,46 @@ export default function Orders() {
   const [paymentRemarks, setPaymentRemarks] = useState<string>("");
   const [recordingPayment, setRecordingPayment] = useState(false);
 
+  const limit = 10;
   const { data, isLoading } = useListOrders(
     {
       search: search || undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
       page,
-      limit: 15,
+      limit,
     },
     {
       query: {
-        queryKey: getListOrdersQueryKey({ search: search || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined, page, limit: 15 }),
+        queryKey: getListOrdersQueryKey({ search: search || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined, page, limit }),
       },
     }
   );
+
+  const handleDatePresetChange = (preset: string) => {
+    setDatePreset(preset);
+    setPage(1);
+    const now = new Date();
+
+    if (preset === "this-month") {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setDateFrom(firstDay.toISOString().split("T")[0]);
+      setDateTo(lastDay.toISOString().split("T")[0]);
+    } else if (preset === "previous-month") {
+      const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+      setDateFrom(firstDay.toISOString().split("T")[0]);
+      setDateTo(lastDay.toISOString().split("T")[0]);
+    } else if (preset === "today") {
+      const todayStr = now.toISOString().split("T")[0];
+      setDateFrom(todayStr);
+      setDateTo(todayStr);
+    } else if (preset === "all") {
+      setDateFrom("");
+      setDateTo("");
+    }
+  };
 
   const handleDownload = async (orderId: number, invoiceNumber: string) => {
     setDownloadingId(orderId);
@@ -122,6 +150,8 @@ export default function Orders() {
     }
   };
 
+  const totalPages = data ? Math.ceil(data.total / 15) : 0;
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between">
@@ -136,7 +166,7 @@ export default function Orders() {
         </Link>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">
           <Popover open={searchDropdownOpen && Boolean(search.trim()) && Boolean(data?.data?.length)} onOpenChange={setSearchDropdownOpen}>
             <PopoverTrigger asChild>
@@ -190,20 +220,37 @@ export default function Orders() {
           </Popover>
         </div>
 
-        <div className="flex gap-2">
+        {/* Date Filter Dropdown with Quick Presets */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={datePreset} onValueChange={handleDatePresetChange}>
+            <SelectTrigger className="w-44 h-10 text-xs font-semibold" data-testid="select-date-preset">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5 text-primary" />
+                <SelectValue placeholder="Quick Date Filter" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">📅 All Time</SelectItem>
+              <SelectItem value="this-month">🗓️ This Month</SelectItem>
+              <SelectItem value="previous-month">📆 Previous Month</SelectItem>
+              <SelectItem value="today">☀️ Today</SelectItem>
+              <SelectItem value="custom">✏️ Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Input
             type="date"
             placeholder="From Date"
             value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-            className="w-40"
+            onChange={(e) => { setDateFrom(e.target.value); setDatePreset("custom"); setPage(1); }}
+            className="w-36 h-10 text-xs"
           />
           <Input
             type="date"
             placeholder="To Date"
             value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-            className="w-40"
+            onChange={(e) => { setDateTo(e.target.value); setDatePreset("custom"); setPage(1); }}
+            className="w-36 h-10 text-xs"
           />
         </div>
       </div>
@@ -310,12 +357,47 @@ export default function Orders() {
         </CardContent>
       </Card>
 
-      {data && data.total > 15 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>Showing {(page - 1) * 15 + 1}–{Math.min(page * 15, data.total)} of {data.total}</span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
-            <Button variant="outline" size="sm" disabled={page * 15 >= data.total} onClick={() => setPage(p => p + 1)}>Next</Button>
+      {/* Clickable Page Numbers Pagination */}
+      {data && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-muted-foreground pt-2">
+          <span>Showing {data.total > 0 ? (page - 1) * limit + 1 : 0}–{Math.min(page * limit, data.total)} of {data.total} orders</span>
+          
+          <div className="flex items-center gap-1.5" data-testid="orders-pagination-numbers">
+            <span className="text-xs font-semibold mr-1">Pages:</span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 cursor-pointer"
+              disabled={page === 1}
+              onClick={() => setPage(p => p - 1)}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+
+            {Array.from({ length: Math.max(1, Math.ceil(data.total / limit)) }, (_, i) => i + 1).map((pNum) => (
+              <Button
+                key={pNum}
+                variant={page === pNum ? "default" : "outline"}
+                size="sm"
+                className={`h-8 min-w-8 px-2 text-xs font-extrabold cursor-pointer transition-all ${
+                  page === pNum ? "shadow-sm bg-primary text-primary-foreground font-bold" : "hover:bg-accent"
+                }`}
+                onClick={() => setPage(pNum)}
+                data-testid={`button-orders-page-${pNum}`}
+              >
+                {pNum}
+              </Button>
+            ))}
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 cursor-pointer"
+              disabled={page >= Math.max(1, Math.ceil(data.total / limit))}
+              onClick={() => setPage(p => p + 1)}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       )}

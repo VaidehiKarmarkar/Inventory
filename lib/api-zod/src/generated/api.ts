@@ -210,6 +210,7 @@ export const DeleteProductParams = zod.object({
  */
 export const ListInventoryQueryParams = zod.object({
   "productId": zod.coerce.number().optional(),
+  "search": zod.string().optional(),
   "page": zod.coerce.number().optional(),
   "limit": zod.coerce.number().optional()
 })

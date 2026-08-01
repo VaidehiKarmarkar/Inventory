@@ -189,7 +189,7 @@ export default function OrderDetail() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Bill To</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Mr. / Mrs.</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="font-bold text-lg">{order.customerName}</p>
@@ -316,6 +316,15 @@ export default function OrderDetail() {
                 <span>{formatCurrency(order.pendingAmount)}</span>
               </div>
             )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-between items-end border-t p-6 gap-4">
+            <p className="text-xs text-muted-foreground italic">Thank you for your business!</p>
+            <div className="w-56 text-center space-y-1">
+              <div className="border-b border-muted-foreground/40 pb-1" />
+              <p className="text-xs font-bold text-foreground">Authorized Signature</p>
+              <p className="text-[11px] text-muted-foreground font-medium">(Aloha Crystal World)</p>
+            </div>
           </div>
         </CardContent>
       </Card>

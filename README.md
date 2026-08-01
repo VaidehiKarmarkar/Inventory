@@ -165,3 +165,9 @@ Product Add - quantity update - deletion Bug to be Fixed
 
 New order- Create order - Print option with same invoice formate 
 
+Add shop name and address above invoice number -
+Aloha Crystal World
+Vedanta Heights, Shri Colony,
+Dastur Nagar, Amravati.
+Mob - 8369495476
+

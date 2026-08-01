@@ -138,18 +138,30 @@ MOM on 1st Aug -
 Removed Features / Fields
 
 Created By
+
 Status
-Header Invoice Number (Inv no)
+
+Header Invoice Number (Inv no) along with created date
+
 
 **⚙️ Field & Logic Changes**
 Invoice Number Format: Update format to INV—YYYYMMDD-01(series) 
+
 Amount Paid: Add payment method options (Cash or UPI)
+
 Side Order Details (Nikita's Feedback): Update the side order details section as requested
+
 Low Stock Alert Threshold: Lower threshold from 5 to 2
+
 Bill Name & Labels: Rename Product to CRYSTAL TYPE
+
 GST & Discount Display Logic: If the value is 0, do not print it on the bill
+
 Order history - same row updated with the remarks
+
 Smart Search with Dropdown- order / new orders / Add product
+
 Product Add - quantity update - deletion Bug to be Fixed
 
+New order- Create order - Print option with same invoice formate 
 

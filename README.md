@@ -174,3 +174,8 @@ Aloha Crystal World
 Vedanta Heights, Shri Colony,
 Dastur Nagar, Amravati.
 Mob - 8369495476
+
+
+Remove ** Tax Invoice** from Bill
+Add date field while editing bill
+

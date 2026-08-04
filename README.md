@@ -204,3 +204,10 @@ Filtered metrics cards displaying Total Orders, Total Revenue, Total Paid Amount
 Month-wise and Product-wise breakdown tables.----done & verified 
 
 TAX INVOICE - done & verified
+---
+Requested Changes
+
+1. Discount field should be dropdown with values - 0% and 5%
+2. On bill, "Aloha Crystal World" should be "Aloha Crystal World, Amravati"
+3. Some superscript character is appearing on the Amount field. For example, if the value is 2100.0, it is appearing as ¹2100.00
+4. 

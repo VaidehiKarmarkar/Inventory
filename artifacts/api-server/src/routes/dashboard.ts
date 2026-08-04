@@ -45,19 +45,25 @@ router.get("/dashboard/analytics", requireAuth, async (req, res): Promise<void> 
   }
 
   const { dateFrom, dateTo } = req.query;
-  const whereClauses: string[] = [];
+  const conditions: ReturnType<typeof sql>[] = [];
 
   if (dateFrom && typeof dateFrom === "string" && dateFrom.trim()) {
-    whereClauses.push(`o.created_at >= '${dateFrom.trim()} 00:00:00'`);
+    const dFrom = new Date(`${dateFrom.trim()}T00:00:00.000Z`);
+    if (!isNaN(dFrom.getTime())) {
+      conditions.push(sql`o.created_at >= ${dFrom}`);
+    }
   }
   if (dateTo && typeof dateTo === "string" && dateTo.trim()) {
-    whereClauses.push(`o.created_at <= '${dateTo.trim()} 23:59:59'`);
+    const dTo = new Date(`${dateTo.trim()}T23:59:59.999Z`);
+    if (!isNaN(dTo.getTime())) {
+      conditions.push(sql`o.created_at <= ${dTo}`);
+    }
   }
 
-  const orderWhereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+  const whereSql = conditions.length > 0 ? sql` WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
   // Month-wise aggregation
-  const monthWiseRaw = await db.execute(sql.raw(`
+  const monthWiseRaw = await db.execute(sql`
     SELECT
       to_char(o.created_at, 'YYYY-MM') AS month_key,
       to_char(o.created_at, 'Mon YYYY') AS month_label,
@@ -66,14 +72,14 @@ router.get("/dashboard/analytics", requireAuth, async (req, res): Promise<void> 
       coalesce(sum(o.paid_amount::numeric), 0)::float AS paid_amount,
       coalesce(sum(o.pending_amount::numeric), 0)::float AS pending_amount
     FROM orders o
-    ${orderWhereSql}
+    ${whereSql}
     GROUP BY to_char(o.created_at, 'YYYY-MM'), to_char(o.created_at, 'Mon YYYY')
     ORDER BY month_key ASC
     LIMIT 12
-  `));
+  `);
 
   // Product-wise sales aggregation
-  const productWiseRaw = await db.execute(sql.raw(`
+  const productWiseRaw = await db.execute(sql`
     SELECT
       oi.product_id,
       oi.product_name,
@@ -81,22 +87,22 @@ router.get("/dashboard/analytics", requireAuth, async (req, res): Promise<void> 
       coalesce(sum(oi.total::numeric), 0)::float AS total_revenue
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
-    ${orderWhereSql}
+    ${whereSql}
     GROUP BY oi.product_id, oi.product_name
     ORDER BY total_quantity_sold DESC
     LIMIT 8
-  `));
+  `);
 
   // Summary Totals
-  const summaryRaw = await db.execute(sql.raw(`
+  const summaryRaw = await db.execute(sql`
     SELECT
       count(*)::int AS total_orders,
       coalesce(sum(grand_total::numeric), 0)::float AS total_revenue,
       coalesce(sum(paid_amount::numeric), 0)::float AS total_paid,
       coalesce(sum(pending_amount::numeric), 0)::float AS total_pending
     FROM orders o
-    ${orderWhereSql}
-  `));
+    ${whereSql}
+  `);
 
   const summaryRow = (summaryRaw.rows[0] as Record<string, unknown>) ?? { total_orders: 0, total_revenue: 0, total_paid: 0, total_pending: 0 };
 
@@ -221,7 +227,7 @@ router.get("/dashboard/export/excel", requireAuth, async (req, res): Promise<voi
   const products = await db.select().from(productsTable).orderBy(productsTable.name);
   const inventoryLogs = await db.select().from(inventoryTable).orderBy(desc(inventoryTable.updatedAt));
 
-  const monthWiseRaw = await db.execute(sql.raw(`
+  const monthWiseRaw = await db.execute(sql`
     SELECT
       to_char(o.created_at, 'Mon YYYY') AS month_label,
       count(*)::int AS order_count,
@@ -231,7 +237,7 @@ router.get("/dashboard/export/excel", requireAuth, async (req, res): Promise<voi
     FROM orders o
     GROUP BY to_char(o.created_at, 'YYYY-MM'), to_char(o.created_at, 'Mon YYYY')
     ORDER BY to_char(o.created_at, 'YYYY-MM') DESC
-  `));
+  `);
 
   const lines: string[] = [];
 

@@ -9,14 +9,13 @@ import {
   ShoppingCart,
   LogOut,
   Loader2,
-  UserSquare,
   Menu,
   KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const [location] = useLocation();
   const logout = useLogout();
 

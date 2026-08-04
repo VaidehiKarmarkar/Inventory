@@ -304,7 +304,8 @@ export const CreateOrderBody = zod.object({
   "referralCharges": zod.number().optional(),
   "discount": zod.number().optional(),
   "paidAmount": zod.number().optional(),
-  "paymentMethod": zod.string().optional()
+  "paymentMethod": zod.string().optional(),
+  "createdAt": zod.string().optional()
 })
 
 

@@ -210,4 +210,11 @@ TAX INVOICE - done & verified
 4. Bill color changes as discussed on whatsapp.
 5. INV series should get updated with +1 always. Shouldn't start with -01 for the day change
 6. Need backup in excel for the inventory data, monthly/daily sales, total revenue and all orders.
- 
+
+Set 2
+1. GST to be defaulted to 0% - done & verified
+2. Aloha Color orange - done & verified
+3. staff and user - remove other user - done & verified
+4. can we add date column in order new order to add the old bills to the system with old date - done & verified
+5. password can be changed from UI ? - done & verified
+6. remove other search box from Inventory and products page - done & verified

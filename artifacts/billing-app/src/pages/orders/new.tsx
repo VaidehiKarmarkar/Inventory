@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, ArrowLeft, ShoppingCart, ChevronsUpDown, Check, Printer, Download, Eye, Edit3, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, ShoppingCart, ChevronsUpDown, Check, Printer, Download, Eye, Edit3, CheckCircle2, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface OrderLineItem {
@@ -39,7 +39,8 @@ export default function NewOrder() {
   const [customerMobile, setCustomerMobile] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [gstPercentage, setGstPercentage] = useState(18);
+  const [orderDate, setOrderDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [gstPercentage, setGstPercentage] = useState(0);
   const [items, setItems] = useState<OrderLineItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [productComboOpen, setProductComboOpen] = useState(false);
@@ -128,7 +129,8 @@ export default function NewOrder() {
     setCustomerMobile("");
     setCustomerEmail("");
     setCustomerAddress("");
-    setGstPercentage(18);
+    setOrderDate(new Date().toISOString().split("T")[0]);
+    setGstPercentage(0);
     setItems([]);
     setSelectedProductId(null);
     setQuantity(1);
@@ -180,6 +182,7 @@ export default function NewOrder() {
       discount: discNum,
       paidAmount: customPaidAmount !== "" ? Number(customPaidAmount) : undefined,
       paymentMethod,
+      createdAt: orderDate ? `${orderDate}T12:00:00.000Z` : undefined,
       items: items.map(i => ({
         productId: i.productId,
         quantity: i.quantity,
@@ -371,7 +374,7 @@ export default function NewOrder() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="customerEmail">Email <span className="text-muted-foreground text-xs">(optional)</span></Label>
                   <Input
@@ -389,6 +392,20 @@ export default function NewOrder() {
                     placeholder="Billing address"
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="orderDate" className="flex items-center gap-1.5 font-medium">
+                    <Calendar className="w-3.5 h-3.5 text-primary" />
+                    <span>Order Date</span>
+                  </Label>
+                  <Input
+                    id="orderDate"
+                    type="date"
+                    value={orderDate}
+                    onChange={(e) => setOrderDate(e.target.value)}
+                    className="bg-background"
+                    data-testid="input-order-date"
                   />
                 </div>
               </div>

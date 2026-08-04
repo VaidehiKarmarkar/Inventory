@@ -11,7 +11,7 @@ export const ordersTable = pgTable("orders", {
   customerEmail: text("customer_email"),
   customerAddress: text("customer_address"),
   subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
-  gstPercentage: numeric("gst_percentage", { precision: 5, scale: 2 }).notNull().default("18"),
+  gstPercentage: numeric("gst_percentage", { precision: 5, scale: 2 }).notNull().default("0"),
   gstAmount: numeric("gst_amount", { precision: 12, scale: 2 }).notNull(),
   referralCharges: numeric("referral_charges", { precision: 12, scale: 2 }).notNull().default("0"),
   discount: numeric("discount", { precision: 12, scale: 2 }).notNull().default("0"),

@@ -83,4 +83,47 @@ router.get("/auth/me", async (req, res): Promise<void> => {
   });
 });
 
+router.post("/auth/change-password", async (req, res): Promise<void> => {
+  if (!req.session.userId) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const { currentPassword, newPassword } = req.body || {};
+
+  if (!currentPassword || typeof currentPassword !== "string") {
+    res.status(400).json({ error: "Current password is required" });
+    return;
+  }
+
+  if (!newPassword || typeof newPassword !== "string" || newPassword.length < 4) {
+    res.status(400).json({ error: "New password must be at least 4 characters long" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, req.session.userId));
+
+  if (!user || !user.isActive) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) {
+    res.status(400).json({ error: "Current password is incorrect" });
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await db
+    .update(usersTable)
+    .set({ passwordHash })
+    .where(eq(usersTable.id, user.id));
+
+  res.json({ message: "Password changed successfully" });
+});
+
 export default router;

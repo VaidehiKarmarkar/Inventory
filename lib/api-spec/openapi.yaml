@@ -955,6 +955,8 @@ components:
           type: string
           enum: [Cash, UPI]
           default: Cash
+        createdAt:
+          type: string
 
     OrderListResponse:
       type: object

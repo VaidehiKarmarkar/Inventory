@@ -15,6 +15,7 @@ import Orders from "@/pages/orders";
 import NewOrder from "@/pages/orders/new";
 import OrderDetail from "@/pages/orders/detail";
 import Users from "@/pages/users";
+import Settings from "@/pages/settings";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ function Router() {
       <Route path="/orders/:id"><ProtectedRoute component={OrderDetail} /></Route>
       <Route path="/orders"><ProtectedRoute component={Orders} /></Route>
       <Route path="/users"><ProtectedRoute component={Users} adminOnly /></Route>
+      <Route path="/settings"><ProtectedRoute component={Settings} /></Route>
       <Route path="/">
         <ProtectedRoute component={() => {
           // Just redirect to dashboard if hitting root

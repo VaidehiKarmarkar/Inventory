@@ -170,7 +170,7 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     });
   }
 
-  const gstPct = gstPercentage ?? 18;
+  const gstPct = gstPercentage ?? 0;
   const gstAmount = subtotal * (gstPct / 100);
   const refCharges = referralCharges ?? 0;
   const disc = discount ?? 0;
@@ -180,6 +180,10 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
   const paid = paidAmount !== undefined ? paidAmount : grandTotal;
   const pending = Math.max(0, grandTotal - paid);
   const status = pending > 0 ? "pending" : "completed";
+
+  const customCreatedAt = req.body.createdAt && !isNaN(new Date(req.body.createdAt as string).getTime())
+    ? new Date(req.body.createdAt as string)
+    : undefined;
 
   const [order] = await db.insert(ordersTable).values({
     invoiceNumber,
@@ -198,6 +202,7 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
     paymentMethod: (req.body.paymentMethod as string) || "Cash",
     status,
     createdById: user.id,
+    createdAt: customCreatedAt,
   }).returning();
 
   // Insert order items + update inventory
@@ -431,18 +436,18 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   res.setHeader("Content-Disposition", `inline; filename="${order.invoiceNumber}.pdf"`);
   doc.pipe(res);
 
-  // Top Header Banner (100% Ink-Saving Monochrome: Clean outline border, zero colored ink)
-  doc.rect(40, 40, 515, 75).fillAndStroke("#ffffff", "#cbd5e1");
+  // Top Header Banner (Vibrant Orange Background)
+  doc.rect(40, 40, 515, 75).fill("#ea580c");
 
-  doc.fillColor("#333333").fontSize(15).font("Helvetica-Bold").text("Aloha Crystal World, Amravati", 55, 48);
-  doc.fontSize(8.5).font("Helvetica").fillColor("#555555").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 72);
+  doc.fillColor("#ffffff").fontSize(15).font("Helvetica-Bold").text("Aloha Crystal World, Amravati", 55, 48);
+  doc.fontSize(8.5).font("Helvetica").fillColor("#ffedd5").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 72);
 
-  // Right side header info (Invoice No & Date in 20% grey / charcoal font)
+  // Right side header info (Invoice No & Date in White text)
   const createdDateStr = new Date(order.createdAt).toLocaleDateString("en-IN", {
     day: "2-digit", month: "short", year: "numeric"
   });
-  doc.fillColor("#333333").fontSize(12).font("Helvetica-Bold").text(order.invoiceNumber, 360, 48, { width: 180, align: "right" });
-  doc.fontSize(9).font("Helvetica").fillColor("#555555").text(`Date: ${createdDateStr}`, 360, 68, { width: 180, align: "right" });
+  doc.fillColor("#ffffff").fontSize(12).font("Helvetica-Bold").text(order.invoiceNumber, 360, 48, { width: 180, align: "right" });
+  doc.fontSize(9).font("Helvetica").fillColor("#ffedd5").text(`Date: ${createdDateStr}`, 360, 68, { width: 180, align: "right" });
 
   // Customer Details Box ("Mr. / Mrs.")
   let currentY = 130;

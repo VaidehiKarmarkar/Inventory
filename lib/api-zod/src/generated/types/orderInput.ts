@@ -20,4 +20,5 @@ export interface OrderInput {
   discount?: number;
   paidAmount?: number;
   paymentMethod?: string;
+  createdAt?: string;
 }

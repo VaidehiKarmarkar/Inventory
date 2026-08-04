@@ -237,6 +237,7 @@ export interface OrderInput {
   discount?: number;
   paidAmount?: number;
   paymentMethod?: string;
+  createdAt?: string;
 }
 
 export interface OrderListResponse {

@@ -11,6 +11,7 @@ import {
   Loader2,
   UserSquare,
   Menu,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -48,7 +49,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { label: "Orders", href: "/orders", icon: ShoppingCart },
     { label: "Products", href: "/products", icon: Package },
     { label: "Inventory Log", href: "/inventory", icon: History },
-    { label: "Staff & Users", href: "/users", icon: UserSquare },
+    { label: "Change Password", href: "/settings", icon: KeyRound },
   ];
 
   const closeSidebar = () => setSidebarOpen(false);
@@ -65,10 +66,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <Menu className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2.5 font-bold text-lg select-none">
-          <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
+          <div className="bg-orange-500/10 text-orange-600 dark:text-orange-500 p-1.5 rounded-lg">
             <Package className="w-5 h-5" />
           </div>
-          <span className="font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-indigo-500 to-indigo-600">Aloha Crystal World</span>
+          <span className="font-extrabold tracking-tight text-orange-600 dark:text-orange-500">Aloha Crystal World</span>
         </div>
       </header>
 

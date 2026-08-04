@@ -47,10 +47,10 @@ export default function Login() {
 
         {/* Logo/Brand Header */}
         <div className="flex items-center gap-3 z-10">
-          <div className="w-10 h-10 bg-primary/10 border border-primary/20 text-primary rounded-xl flex items-center justify-center shadow-inner">
-            <Package className="w-5 h-5 text-indigo-400" />
+          <div className="w-10 h-10 bg-orange-500/10 border border-orange-500/20 text-orange-500 rounded-xl flex items-center justify-center shadow-inner">
+            <Package className="w-5 h-5 text-orange-500" />
           </div>
-          <span className="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-indigo-100">Aloha Crystal World</span>
+          <span className="font-extrabold text-lg tracking-tight text-orange-500">Aloha Crystal World</span>
         </div>
 
         {/* Hero Content */}
@@ -80,8 +80,8 @@ export default function Login() {
       {/* ── Right Pane: Elegant Login Form ── */}
       <div className="flex-1 flex items-center justify-center p-6 bg-slate-50 dark:bg-zinc-950 relative">
         <div className="absolute top-10 right-10 md:hidden flex items-center gap-2">
-          <Package className="w-5 h-5 text-primary" />
-          <span className="font-bold text-sm tracking-tight text-foreground">Aloha Crystal World</span>
+          <Package className="w-5 h-5 text-orange-500" />
+          <span className="font-bold text-sm tracking-tight text-orange-600 dark:text-orange-500">Aloha Crystal World</span>
         </div>
 
         <div className="w-full max-w-md">

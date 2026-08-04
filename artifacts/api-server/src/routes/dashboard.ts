@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, usersTable, productsTable, ordersTable } from "@workspace/db";
-import { sql, lte, gte, and } from "drizzle-orm";
+import { db, usersTable, productsTable, ordersTable, inventoryTable } from "@workspace/db";
+import { sql, lte, gte, and, desc } from "drizzle-orm";
 import { requireAuth, getSessionUser } from "../middlewares/auth";
 
 const router = Router();
@@ -202,6 +202,213 @@ router.get("/dashboard/low-stock", requireAuth, async (req, res): Promise<void> 
     .limit(20);
 
   res.json(products.map(p => ({ ...p, price: Number(p.price) })));
+});
+
+function escapeCsv(val: unknown): string {
+  if (val === null || val === undefined) return '""';
+  const str = String(val).replace(/"/g, '""');
+  return `"${str}"`;
+}
+
+router.get("/dashboard/export/excel", requireAuth, async (req, res): Promise<void> => {
+  const user = await getSessionUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const orders = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt));
+  const products = await db.select().from(productsTable).orderBy(productsTable.name);
+  const inventoryLogs = await db.select().from(inventoryTable).orderBy(desc(inventoryTable.updatedAt));
+
+  const monthWiseRaw = await db.execute(sql.raw(`
+    SELECT
+      to_char(o.created_at, 'Mon YYYY') AS month_label,
+      count(*)::int AS order_count,
+      coalesce(sum(o.grand_total::numeric), 0)::float AS revenue,
+      coalesce(sum(o.paid_amount::numeric), 0)::float AS paid_amount,
+      coalesce(sum(o.pending_amount::numeric), 0)::float AS pending_amount
+    FROM orders o
+    GROUP BY to_char(o.created_at, 'YYYY-MM'), to_char(o.created_at, 'Mon YYYY')
+    ORDER BY to_char(o.created_at, 'YYYY-MM') DESC
+  `));
+
+  const lines: string[] = [];
+
+  lines.push("\uFEFFALOHA CRYSTAL WORLD - MASTER SYSTEM BACKUP");
+  lines.push(`Generated On: "${new Date().toLocaleString("en-IN")}"`);
+  lines.push("");
+
+  // SECTION 1: MONTHLY SALES SUMMARY
+  lines.push("--- MONTHLY SALES & REVENUE SUMMARY ---");
+  lines.push(["Month", "Total Orders", "Total Revenue (₹)", "Total Paid (₹)", "Pending Balance (₹)"].map(escapeCsv).join(","));
+  for (const m of monthWiseRaw.rows as any[]) {
+    lines.push([
+      m.month_label,
+      m.order_count,
+      Number(m.revenue).toFixed(2),
+      Number(m.paid_amount).toFixed(2),
+      Number(m.pending_amount).toFixed(2),
+    ].map(escapeCsv).join(","));
+  }
+  lines.push("");
+
+  // SECTION 2: ALL ORDERS
+  lines.push("--- ALL ORDERS & INVOICES ---");
+  lines.push([
+    "Invoice No", "Date", "Customer Name", "Customer Mobile", "Customer Email",
+    "Customer Address", "Payment Method", "Subtotal (₹)", "GST (%)", "GST Amount (₹)",
+    "Discount (₹)", "Referral Charges (₹)", "Grand Total (₹)", "Paid Amount (₹)",
+    "Pending Balance (₹)", "Status"
+  ].map(escapeCsv).join(","));
+
+  for (const o of orders) {
+    lines.push([
+      o.invoiceNumber,
+      new Date(o.createdAt).toLocaleString("en-IN"),
+      o.customerName,
+      o.customerMobile,
+      o.customerEmail || "",
+      o.customerAddress || "",
+      o.paymentMethod || "Cash",
+      Number(o.subtotal).toFixed(2),
+      Number(o.gstPercentage),
+      Number(o.gstAmount).toFixed(2),
+      Number(o.discount).toFixed(2),
+      Number(o.referralCharges).toFixed(2),
+      Number(o.grandTotal).toFixed(2),
+      Number(o.paidAmount).toFixed(2),
+      Number(o.pendingAmount).toFixed(2),
+      o.status,
+    ].map(escapeCsv).join(","));
+  }
+  lines.push("");
+
+  // SECTION 3: PRODUCTS & INVENTORY DATA
+  lines.push("--- PRODUCTS & STOCK INVENTORY DATA ---");
+  lines.push([
+    "Product ID", "Product Name", "Description", "Unit Price (₹)", "Available Stock Quantity",
+    "Total Stock Value (₹)", "Stock Status"
+  ].map(escapeCsv).join(","));
+
+  for (const p of products) {
+    const qty = p.availableQuantity;
+    const price = Number(p.price);
+    const stockValue = qty * price;
+    const stockStatus = qty === 0 ? "Out of Stock" : qty <= 2 ? "Low Stock" : "In Stock";
+
+    lines.push([
+      p.id,
+      p.name,
+      p.description || "",
+      price.toFixed(2),
+      qty,
+      stockValue.toFixed(2),
+      stockStatus,
+    ].map(escapeCsv).join(","));
+  }
+  lines.push("");
+
+  // SECTION 4: INVENTORY TRANSACTIONS / AUDIT LOGS
+  lines.push("--- INVENTORY MOVEMENT LOGS ---");
+  lines.push([
+    "Log ID", "Product Name", "Previous Qty", "Quantity Added", "Quantity Reduced",
+    "Current Qty", "Action Type", "Timestamp"
+  ].map(escapeCsv).join(","));
+
+  for (const l of inventoryLogs) {
+    lines.push([
+      l.id,
+      l.productName,
+      l.previousQuantity,
+      l.quantityAdded || 0,
+      l.quantityReduced || 0,
+      l.currentQuantity,
+      l.actionType,
+      new Date(l.updatedAt).toLocaleString("en-IN"),
+    ].map(escapeCsv).join(","));
+  }
+
+  const csvContent = lines.join("\n");
+  const filename = `Aloha_Crystal_World_Full_Backup_${new Date().toISOString().split("T")[0]}.csv`;
+
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(csvContent);
+});
+
+router.get("/dashboard/export/orders", requireAuth, async (req, res): Promise<void> => {
+  const user = await getSessionUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const orders = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt));
+  const lines: string[] = [];
+
+  lines.push("\uFEFFInvoice No,Date,Customer Name,Customer Mobile,Customer Email,Customer Address,Payment Method,Subtotal (₹),GST (%),GST Amount (₹),Discount (₹),Referral Charges (₹),Grand Total (₹),Paid Amount (₹),Pending Balance (₹),Status");
+
+  for (const o of orders) {
+    lines.push([
+      o.invoiceNumber,
+      new Date(o.createdAt).toLocaleString("en-IN"),
+      o.customerName,
+      o.customerMobile,
+      o.customerEmail || "",
+      o.customerAddress || "",
+      o.paymentMethod || "Cash",
+      Number(o.subtotal).toFixed(2),
+      Number(o.gstPercentage),
+      Number(o.gstAmount).toFixed(2),
+      Number(o.discount).toFixed(2),
+      Number(o.referralCharges).toFixed(2),
+      Number(o.grandTotal).toFixed(2),
+      Number(o.paidAmount).toFixed(2),
+      Number(o.pendingAmount).toFixed(2),
+      o.status,
+    ].map(escapeCsv).join(","));
+  }
+
+  const filename = `All_Orders_${new Date().toISOString().split("T")[0]}.csv`;
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(lines.join("\n"));
+});
+
+router.get("/dashboard/export/inventory", requireAuth, async (req, res): Promise<void> => {
+  const user = await getSessionUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const products = await db.select().from(productsTable).orderBy(productsTable.name);
+  const lines: string[] = [];
+
+  lines.push("\uFEFFProduct ID,Product Name,Description,Unit Price (₹),Available Stock Quantity,Total Stock Value (₹),Stock Status");
+
+  for (const p of products) {
+    const qty = p.availableQuantity;
+    const price = Number(p.price);
+    const stockValue = qty * price;
+    const stockStatus = qty === 0 ? "Out of Stock" : qty <= 2 ? "Low Stock" : "In Stock";
+
+    lines.push([
+      p.id,
+      p.name,
+      p.description || "",
+      price.toFixed(2),
+      qty,
+      stockValue.toFixed(2),
+      stockStatus,
+    ].map(escapeCsv).join(","));
+  }
+
+  const filename = `Products_Inventory_${new Date().toISOString().split("T")[0]}.csv`;
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(lines.join("\n"));
 });
 
 export default router;

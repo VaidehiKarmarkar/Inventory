@@ -17,6 +17,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Package,
   ShoppingCart,
@@ -29,7 +36,10 @@ import {
   Calendar,
   PieChart as PieIcon,
   Layers,
-  Filter
+  Filter,
+  Download,
+  FileSpreadsheet,
+  Database
 } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -203,9 +213,44 @@ export default function Dashboard() {
           <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/90 to-foreground/80">Dashboard &amp; Analytics</h1>
           <p className="text-muted-foreground text-sm">Welcome back, {user?.name || "User"}. Operational overview &amp; real-time sales reporting for Aloha Crystal World.</p>
         </div>
-        <div className="hidden sm:flex items-center gap-2 bg-primary/10 text-primary px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Real-time Sync Active</span>
+        <div className="flex items-center gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-sm gap-2 cursor-pointer" data-testid="button-download-excel-backup">
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Backup in Excel</span>
+                <Download className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuItem asChild className="cursor-pointer font-semibold py-2.5">
+                <a href="/api/dashboard/export/excel" download data-testid="menu-item-master-backup">
+                  <Database className="w-4 h-4 mr-2 text-emerald-600" />
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Full Master Excel Backup</p>
+                    <p className="text-[10px] text-muted-foreground font-normal">All Orders, Products, Stock &amp; Analytics</p>
+                  </div>
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="cursor-pointer py-2">
+                <a href="/api/dashboard/export/orders" download data-testid="menu-item-orders-backup">
+                  <ShoppingCart className="w-4 h-4 mr-2 text-primary" />
+                  <span className="text-xs font-medium">All Orders &amp; Invoices (.csv)</span>
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="cursor-pointer py-2">
+                <a href="/api/dashboard/export/inventory" download data-testid="menu-item-inventory-backup">
+                  <Package className="w-4 h-4 mr-2 text-primary" />
+                  <span className="text-xs font-medium">Products &amp; Stock Levels (.csv)</span>
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="hidden sm:flex items-center gap-2 bg-primary/10 text-primary px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Real-time Sync Active</span>
+          </div>
         </div>
       </div>
 

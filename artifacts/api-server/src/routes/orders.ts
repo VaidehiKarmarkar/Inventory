@@ -22,18 +22,14 @@ async function generateInvoiceNumber(): Promise<string> {
 
   const existingOrders = await db
     .select({ invoiceNumber: ordersTable.invoiceNumber })
-    .from(ordersTable)
-    .where(or(
-      ilike(ordersTable.invoiceNumber, `${prefix}%`),
-      ilike(ordersTable.invoiceNumber, `INV—${yyyymmdd}-%`)
-    ));
+    .from(ordersTable);
 
   let maxSeq = 0;
   for (const order of existingOrders) {
-    const parts = order.invoiceNumber.split("-");
-    const seqStr = parts[parts.length - 1];
-    const seqNum = parseInt(seqStr, 10);
-    if (!isNaN(seqNum) && seqNum > maxSeq) {
+    const parts = order.invoiceNumber.split(/[-—]/);
+    const lastPart = parts[parts.length - 1];
+    const seqNum = parseInt(lastPart, 10);
+    if (!isNaN(seqNum) && seqNum < 10000 && seqNum > maxSeq) {
       maxSeq = seqNum;
     }
   }
@@ -435,26 +431,27 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   res.setHeader("Content-Disposition", `inline; filename="${order.invoiceNumber}.pdf"`);
   doc.pipe(res);
 
-  // Top Header Banner (A4 printable width = 515pt from X=40 to 555)
-  doc.rect(40, 40, 515, 75).fill("#0f172a");
-  doc.fillColor("#ffffff").fontSize(18).font("Helvetica-Bold").text("Aloha Crystal World", 55, 48);
-  doc.fontSize(8.5).font("Helvetica").fillColor("#94a3b8").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 72);
+  // Top Header Banner (100% Ink-Saving Monochrome: Clean outline border, zero colored ink)
+  doc.rect(40, 40, 515, 75).fillAndStroke("#ffffff", "#cbd5e1");
 
-  // Right side header info (Invoice No & Date)
+  doc.fillColor("#333333").fontSize(15).font("Helvetica-Bold").text("Aloha Crystal World, Amravati", 55, 48);
+  doc.fontSize(8.5).font("Helvetica").fillColor("#555555").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 72);
+
+  // Right side header info (Invoice No & Date in 20% grey / charcoal font)
   const createdDateStr = new Date(order.createdAt).toLocaleDateString("en-IN", {
     day: "2-digit", month: "short", year: "numeric"
   });
-  doc.fillColor("#ffffff").fontSize(12).font("Helvetica-Bold").text(order.invoiceNumber, 360, 48, { width: 180, align: "right" });
-  doc.fontSize(9).font("Helvetica").fillColor("#cbd5e1").text(`Date: ${createdDateStr}`, 360, 68, { width: 180, align: "right" });
+  doc.fillColor("#333333").fontSize(12).font("Helvetica-Bold").text(order.invoiceNumber, 360, 48, { width: 180, align: "right" });
+  doc.fontSize(9).font("Helvetica").fillColor("#555555").text(`Date: ${createdDateStr}`, 360, 68, { width: 180, align: "right" });
 
   // Customer Details Box ("Mr. / Mrs.")
   let currentY = 130;
-  doc.rect(40, currentY, 515, 75).fill("#f8fafc").stroke("#e2e8f0");
+  doc.rect(40, currentY, 515, 75).fillAndStroke("#ffffff", "#e2e8f0");
   
-  doc.fillColor("#475569").fontSize(8).font("Helvetica-Bold").text("Mr. / Mrs.", 55, currentY + 10);
-  doc.fillColor("#0f172a").fontSize(12).font("Helvetica-Bold").text(order.customerName, 55, currentY + 24);
+  doc.fillColor("#666666").fontSize(8).font("Helvetica-Bold").text("Mr. / Mrs.", 55, currentY + 10);
+  doc.fillColor("#333333").fontSize(12).font("Helvetica-Bold").text(order.customerName, 55, currentY + 24);
   
-  doc.fillColor("#334155").fontSize(9).font("Helvetica");
+  doc.fillColor("#444444").fontSize(9).font("Helvetica");
   let custDetails = `Mobile: ${order.customerMobile}`;
   if (order.customerEmail) custDetails += `  |  Email: ${order.customerEmail}`;
   doc.text(custDetails, 55, currentY + 42);
@@ -462,10 +459,10 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
     doc.text(`Address: ${order.customerAddress}`, 55, currentY + 56, { width: 485 });
   }
 
-  // Items Table Header
+  // Items Table Header (Ink-Saving: Light grey fill with clean border)
   currentY = 205;
-  doc.rect(40, currentY, 515, 24).fill("#1e293b");
-  doc.fillColor("#ffffff").fontSize(9).font("Helvetica-Bold");
+  doc.rect(40, currentY, 515, 24).fillAndStroke("#f8fafc", "#cbd5e1");
+  doc.fillColor("#333333").fontSize(9).font("Helvetica-Bold");
   doc.text("CRYSTAL TYPE", 50, currentY + 7, { width: 230, align: "left" });
   doc.text("QTY", 280, currentY + 7, { width: 50, align: "center" });
   doc.text("UNIT PRICE", 340, currentY + 7, { width: 90, align: "right" });
@@ -473,21 +470,21 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
 
   currentY += 24;
 
-  // Table Rows
+  // Table Rows (20% grey font)
   doc.font("Helvetica").fontSize(9);
   let isAltRow = false;
 
   for (const item of items) {
     if (isAltRow) {
-      doc.rect(40, currentY, 515, 24).fill("#f8fafc");
+      doc.rect(40, currentY, 515, 24).fill("#fafafa");
     }
     isAltRow = !isAltRow;
 
-    doc.fillColor("#1e293b");
+    doc.fillColor("#333333");
     doc.text(item.productName, 50, currentY + 7, { width: 230, align: "left" });
     doc.text(String(item.quantity), 280, currentY + 7, { width: 50, align: "center" });
-    doc.text(`₹${Number(item.unitPrice).toFixed(2)}`, 340, currentY + 7, { width: 90, align: "right" });
-    doc.text(`₹${Number(item.total).toFixed(2)}`, 440, currentY + 7, { width: 100, align: "right" });
+    doc.text(`Rs. ${Number(item.unitPrice).toFixed(2)}`, 340, currentY + 7, { width: 90, align: "right" });
+    doc.text(`Rs. ${Number(item.total).toFixed(2)}`, 440, currentY + 7, { width: 100, align: "right" });
 
     doc.moveTo(40, currentY + 24).lineTo(555, currentY + 24).strokeColor("#e2e8f0").stroke();
     currentY += 24;
@@ -508,37 +505,37 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   const pending = Number(order.pendingAmount ?? 0);
   const pMethod = order.paymentMethod || "Cash";
 
-  const renderTotalRow = (label: string, value: string, isBold = false, color = "#1e293b") => {
+  const renderTotalRow = (label: string, value: string, isBold = false, color = "#333333") => {
     doc.fillColor(color).font(isBold ? "Helvetica-Bold" : "Helvetica").fontSize(isBold ? 10 : 9);
     doc.text(label, totalsBoxX, currentY, { width: 130, align: "left" });
     doc.text(value, totalsBoxX + 130, currentY, { width: 105, align: "right" });
     currentY += 18;
   };
 
-  renderTotalRow("Subtotal:", `₹${subtotal.toFixed(2)}`);
+  renderTotalRow("Subtotal:", `Rs. ${subtotal.toFixed(2)}`);
 
   if (gstAmount > 0) {
-    renderTotalRow(`GST (${gstPct}%):`, `₹${gstAmount.toFixed(2)}`);
+    renderTotalRow(`GST (${gstPct}%):`, `Rs. ${gstAmount.toFixed(2)}`);
   }
   if (refCharges > 0) {
-    renderTotalRow("Referral Charges:", `₹${refCharges.toFixed(2)}`);
+    renderTotalRow("Referral Charges:", `Rs. ${refCharges.toFixed(2)}`);
   }
   if (discount > 0) {
-    renderTotalRow("Discount:", `-₹${discount.toFixed(2)}`, false, "#059669");
+    renderTotalRow("Discount:", `-Rs. ${discount.toFixed(2)}`, false, "#333333");
   }
 
   doc.moveTo(totalsBoxX, currentY).lineTo(555, currentY).strokeColor("#cbd5e1").stroke();
   currentY += 6;
 
-  renderTotalRow("Grand Total:", `₹${grandTotal.toFixed(2)}`, true, "#0f172a");
+  renderTotalRow("Grand Total:", `Rs. ${grandTotal.toFixed(2)}`, true, "#222222");
 
   doc.moveTo(totalsBoxX, currentY).lineTo(555, currentY).strokeColor("#cbd5e1").stroke();
   currentY += 6;
 
-  renderTotalRow(`Amount Paid (${pMethod}):`, `₹${paid.toFixed(2)}`, true, "#059669");
+  renderTotalRow(`Amount Paid (${pMethod}):`, `Rs. ${paid.toFixed(2)}`, true, "#333333");
 
   if (pending > 0) {
-    renderTotalRow("Pending Balance:", `₹${pending.toFixed(2)}`, true, "#dc2626");
+    renderTotalRow("Pending Balance:", `Rs. ${pending.toFixed(2)}`, true, "#333333");
   }
 
   // Signature Block (Right aligned, above footer)
@@ -547,13 +544,13 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   const sigWidth = 185;
 
   doc.moveTo(sigX, sigY).lineTo(sigX + sigWidth, sigY).strokeColor("#94a3b8").stroke();
-  doc.fillColor("#334155").font("Helvetica-Bold").fontSize(9).text("Authorized Signature", sigX, sigY + 6, { width: sigWidth, align: "center" });
-  doc.fillColor("#94a3b8").font("Helvetica").fontSize(8).text("(Aloha Crystal World)", sigX, sigY + 18, { width: sigWidth, align: "center" });
+  doc.fillColor("#444444").font("Helvetica-Bold").fontSize(9).text("Authorized Signature", sigX, sigY + 6, { width: sigWidth, align: "center" });
+  doc.fillColor("#666666").font("Helvetica").fontSize(8).text("(Aloha Crystal World, Amravati)", sigX, sigY + 18, { width: sigWidth, align: "center" });
 
   // Footer Note
   currentY = Math.max(sigY + 45, 760);
   doc.moveTo(40, currentY).lineTo(555, currentY).strokeColor("#e2e8f0").stroke();
-  doc.fillColor("#64748b").fontSize(8).font("Helvetica").text("Thank you for your business! For any queries, please contact customer support.", 40, currentY + 8, { align: "center" });
+  doc.fillColor("#666666").fontSize(8).font("Helvetica").text("Thank you for your business! For any queries, please contact customer support.", 40, currentY + 8, { align: "center" });
 
   doc.end();
 });

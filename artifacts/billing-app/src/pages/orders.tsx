@@ -18,7 +18,7 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Download, Eye, ShoppingCart, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Download, Eye, ShoppingCart, Calendar, ChevronLeft, ChevronRight, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Orders() {
@@ -159,11 +159,19 @@ export default function Orders() {
           <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
           <p className="text-muted-foreground mt-1">Manage sales orders and track pending payments.</p>
         </div>
-        <Link href="/orders/new">
-          <Button data-testid="button-create-order">
-            <Plus className="w-4 h-4 mr-2" /> New Order
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild className="gap-2 cursor-pointer">
+            <a href="/api/dashboard/export/orders" download>
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>Export Excel</span>
+            </a>
           </Button>
-        </Link>
+          <Link href="/orders/new">
+            <Button data-testid="button-create-order">
+              <Plus className="w-4 h-4 mr-2" /> New Order
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-3">

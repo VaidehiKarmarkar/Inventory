@@ -204,12 +204,3 @@ Filtered metrics cards displaying Total Orders, Total Revenue, Total Paid Amount
 Month-wise and Product-wise breakdown tables.----done & verified 
 
 TAX INVOICE - done & verified
----
-Requested Changes
-
-1. Discount field should be dropdown with values - 0% and 5%
-2. On bill, "Aloha Crystal World" should be "Aloha Crystal World, Amravati"
-3. Some superscript character is appearing on the Amount field. For example, if the value is 2100.0, it is appearing as ¹2100.00
-4. Bill color changes as discussed on whatsapp.
-5. INV series should get updated with +1 always. Shouldn't start with -01 for the day change
-6. Need backup in excel for the inventory data, monthly/daily sales, total revenue and all orders.

@@ -44,7 +44,7 @@ export default function NewOrder() {
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [productComboOpen, setProductComboOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [discount, setDiscount] = useState<string>("");
+  const [discountPercentage, setDiscountPercentage] = useState<number>(0);
   const [customPaidAmount, setCustomPaidAmount] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<"Cash" | "UPI">("Cash");
 
@@ -132,14 +132,14 @@ export default function NewOrder() {
     setItems([]);
     setSelectedProductId(null);
     setQuantity(1);
-    setDiscount("");
+    setDiscountPercentage(0);
     setCustomPaidAmount("");
     setPaymentMethod("Cash");
     setCreatedOrder(null);
   };
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const discNum = discount !== "" ? Math.max(0, Number(discount)) : 0;
+  const discNum = (subtotal * discountPercentage) / 100;
   const subtotalAfterDisc = Math.max(0, subtotal - discNum);
   const gstAmount = subtotalAfterDisc * (gstPercentage / 100);
   const grandTotal = subtotalAfterDisc + gstAmount;
@@ -544,23 +544,27 @@ export default function NewOrder() {
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
-                  <Label htmlFor="discountInput" className="text-xs text-muted-foreground font-medium">Discount (₹)</Label>
-                  <Input
-                    id="discountInput"
-                    type="number"
-                    min={0}
-                    max={subtotal}
-                    step={0.01}
-                    placeholder="0.00"
-                    value={discount}
-                    onChange={(e) => setDiscount(e.target.value)}
-                    className="h-7 w-28 text-right text-xs"
-                    data-testid="input-order-discount"
-                  />
+                  <Label htmlFor="discountSelect" className="text-xs text-muted-foreground font-medium">Discount (%)</Label>
+                  <Select
+                    value={String(discountPercentage)}
+                    onValueChange={(v) => setDiscountPercentage(Number(v))}
+                  >
+                    <SelectTrigger id="discountSelect" className="h-7 w-24 text-xs px-2" data-testid="select-discount">
+                      <SelectValue placeholder="Select Discount" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">0%</SelectItem>
+                      <SelectItem value="1">1%</SelectItem>
+                      <SelectItem value="2">2%</SelectItem>
+                      <SelectItem value="3">3%</SelectItem>
+                      <SelectItem value="4">4%</SelectItem>
+                      <SelectItem value="5">5%</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 {discNum > 0 && (
                   <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                    <span>Discount Applied</span>
+                    <span>Discount Applied ({discountPercentage}%)</span>
                     <span>-{formatCurrency(discNum)}</span>
                   </div>
                 )}

@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList, CommandInput } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
-import { Plus, History, ArrowUpCircle, ArrowDownCircle, ShoppingCart, ChevronLeft, ChevronRight, Search, ChevronsUpDown, Check, X, Package } from "lucide-react";
+import { Plus, History, ArrowUpCircle, ArrowDownCircle, ShoppingCart, ChevronLeft, ChevronRight, Search, ChevronsUpDown, Check, X, Package, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const adjustSchema = z.object({
@@ -93,9 +93,17 @@ export default function Inventory() {
           <h1 className="text-3xl font-bold tracking-tight">Inventory Log</h1>
           <p className="text-muted-foreground mt-1">Track all stock movements and adjustments.</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} data-testid="button-adjust-inventory">
-          <Plus className="w-4 h-4 mr-2" /> Adjust Stock
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild className="gap-2 cursor-pointer">
+            <a href="/api/dashboard/export/inventory" download>
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>Export Excel</span>
+            </a>
+          </Button>
+          <Button onClick={() => setDialogOpen(true)} data-testid="button-adjust-inventory">
+            <Plus className="w-4 h-4 mr-2" /> Adjust Stock
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

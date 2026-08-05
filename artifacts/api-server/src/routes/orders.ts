@@ -437,7 +437,7 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   doc.pipe(res);
 
   // Top Header Banner (Vibrant Orange Background)
-  doc.rect(40, 40, 515, 75).fill("#ea580c");
+  doc.rect(40, 40, 515, 75).fill("#eab308");
 
   doc.fillColor("#ffffff").fontSize(15).font("Helvetica-Bold").text("Aloha Crystal World, Amravati", 55, 48);
   doc.fontSize(8.5).font("Helvetica").fillColor("#ffedd5").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 72);

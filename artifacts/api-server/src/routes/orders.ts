@@ -436,18 +436,18 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   res.setHeader("Content-Disposition", `inline; filename="${order.invoiceNumber}.pdf"`);
   doc.pipe(res);
 
-  // Top Header Banner (Vibrant Orange Background)
-  doc.rect(40, 40, 515, 75).fill("#eab308");
+  // Top Header Banner (Light Yellow Background)
+  doc.rect(40, 40, 515, 75).fill("#fef9c3");
 
-  doc.fillColor("#ffffff").fontSize(15).font("Helvetica-Bold").text("Aloha Crystal World, Amravati", 55, 48);
-  doc.fontSize(8.5).font("Helvetica").fillColor("#ffedd5").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 72);
+  doc.fillColor("#000000").fontSize(15).font("Helvetica-Bold").text("Aloha Crystal World, Amravati", 55, 48);
+  doc.fontSize(8.5).font("Helvetica").fillColor("#000000").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 72);
 
-  // Right side header info (Invoice No & Date in White text)
+  // Right side header info (Invoice No & Date in Black text)
   const createdDateStr = new Date(order.createdAt).toLocaleDateString("en-IN", {
     day: "2-digit", month: "short", year: "numeric"
   });
-  doc.fillColor("#ffffff").fontSize(12).font("Helvetica-Bold").text(order.invoiceNumber, 360, 48, { width: 180, align: "right" });
-  doc.fontSize(9).font("Helvetica").fillColor("#ffedd5").text(`Date: ${createdDateStr}`, 360, 68, { width: 180, align: "right" });
+  doc.fillColor("#000000").fontSize(12).font("Helvetica-Bold").text(order.invoiceNumber, 360, 48, { width: 180, align: "right" });
+  doc.fontSize(9).font("Helvetica").fillColor("#000000").text(`Date: ${createdDateStr}`, 360, 68, { width: 180, align: "right" });
 
   // Customer Details Box ("Mr. / Mrs.")
   let currentY = 130;

@@ -76,13 +76,21 @@ pnpm run build
 
 ## 5. Step 4: Configure Node.js Web App Start Command
 
-In Hostinger hPanel → **Node.js Web App**:
+In Hostinger hPanel → **Node.js Web App** deploy settings:
 
-- **Application Root**: `/`
-- **Application Startup File**: `artifacts/api-server/dist/index.mjs`
-- **Node Version**: `20.x` or `22.x`
+| Setting | Value |
+| --- | --- |
+| Framework | Other (or Express) |
+| Node version | `22` (or `20`) |
+| Build command | `build` / `pnpm run build` |
+| Package manager | `pnpm` |
+| Output directory | leave empty (server app; not a static-only site) |
+| **Entry file** | `artifacts/api-server/dist/index.mjs` |
 
-Click **Save** and **Restart Application**.
+> [!IMPORTANT]
+> If **Entry file** is empty, the build can succeed but the site returns **403 Forbidden** because Hostinger never starts the Node process. Set the entry file, redeploy (regenerates `public_html/.htaccess`), then restart.
+
+The API server also serves the Vite SPA from `artifacts/billing-app/dist/public` and listens on `0.0.0.0:$PORT`.
 
 ---
 
@@ -98,11 +106,32 @@ Click **Save** and **Restart Application**.
 ## 7. Troubleshooting Build & Install Issues
 
 ### `[ERR_PNPM_IGNORED_BUILDS]` on Hostinger / CI
-If Hostinger throws `[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.27.3`, `.npmrc` and `package.json` have been updated with `onlyBuiltDependencies`.
+pnpm 11 requires every package with lifecycle scripts to appear under `allowBuilds` in `pnpm-workspace.yaml`:
+- `esbuild: false` — intentionally skip (reviewed; does **not** error)
+- other packages: `true` if their install scripts must run
 
-If running commands via SSH on Hostinger:
+Do **not** leave a package unlisted — that is what triggers `ERR_PNPM_IGNORED_BUILDS`.
+
+### `esbuild` postinstall `EACCES` / `spawnSync .../bin/esbuild`
+Hostinger often materializes `@esbuild/*` binaries without `+x`. Running esbuild’s postinstall then fails on `--version`.
+
+This repo:
+1. Sets `allowBuilds.esbuild: false` so that postinstall is skipped cleanly
+2. Uses `package-import-method=copy` plus root `postinstall` (`scripts/fix-esbuild-perms.cjs`) to restore `+x` before `pnpm run build`
+
+If you still see `EACCES` during **build**, SSH in and run:
 ```bash
-pnpm approve-builds --all
-# OR
-pnpm install --no-frozen-lockfile
+find node_modules -type f -name esbuild -exec chmod +x {} +
+pnpm run build
 ```
+
+### `pnpm: command not found` during build
+Hostinger runs `package.json` scripts in a shell where `pnpm` is not on `PATH`. Nested `pnpm ...` calls then fail even though install used pnpm.
+
+Root scripts go through `node scripts/pnpm.cjs`, which reuses `npm_execpath` (the pnpm binary that started the script). Keep using **Build command**: `pnpm run build` (or leave Hostinger auto-detect).
+
+### Site returns `403 Forbidden` after a green build
+Usually one of:
+1. **Missing entry file** — set to `artifacts/api-server/dist/index.mjs` and redeploy
+2. **Stale `.htaccess`** — redeploy so Hostinger regenerates `public_html/.htaccess`
+3. **App crash on boot** — check Runtime Logs; ensure `DATABASE_URL`, `SESSION_SECRET`, and `NODE_ENV=production` are set, then Restart

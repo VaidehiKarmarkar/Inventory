@@ -31,7 +31,8 @@ if (Number.isNaN(port) || port <= 0) {
 
 seedIfEmpty()
   .then(() => {
-    app.listen(port, (err) => {
+    // Hostinger proxies to 0.0.0.0:$PORT — do not bind localhost-only.
+    app.listen(port, "0.0.0.0", (err) => {
       if (err) {
         logger.error({ err }, "Error listening on port");
         process.exit(1);

@@ -58,22 +58,23 @@ catalog:
 
 autoInstallPeers: false
 
+# pnpm 10 (removed in v11 — kept for older Hostinger images)
 onlyBuiltDependencies:
   - "@swc/core"
-  - esbuild
   - msw
   - unrs-resolver
-  - "@esbuild/linux-x64"
-  - "@esbuild/linux-arm64"
-  - "@esbuild/darwin-arm64"
-  - "@esbuild/darwin-x64"
-  - "@esbuild/win32-x64"
-  - "@esbuild-kit/esm-loader"
+ignoredBuiltDependencies:
+  - esbuild
+
+# pnpm 11: required. `false` = reviewed skip (does NOT trigger ERR_PNPM_IGNORED_BUILDS).
+# Optional @esbuild/* bins + root postinstall chmod are enough for vite/esbuild.
+allowBuilds:
+  esbuild: false
+  "@swc/core": true
+  msw: true
+  unrs-resolver: true
 
 overrides:
   # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
   "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.27.3"
-
-allowBuilds:
-  esbuild: true

@@ -92,3 +92,17 @@ Click **Save** and **Restart Application**.
 - [x] **Parameterized Queries & ORM**: All database queries use Drizzle ORM parameterized queries to prevent SQL injection.
 - [x] **Bcrypt Hashing**: User passwords are securely hashed using bcrypt (`salt rounds = 10`). Plaintext passwords are never stored or logged.
 - [x] **Environment Separation**: Local development uses local `.env` or Docker PostgreSQL; Hostinger production uses Hostinger `.env` environment variables.
+
+---
+
+## 7. Troubleshooting Build & Install Issues
+
+### `[ERR_PNPM_IGNORED_BUILDS]` on Hostinger / CI
+If Hostinger throws `[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.27.3`, `.npmrc` and `package.json` have been updated with `onlyBuiltDependencies`.
+
+If running commands via SSH on Hostinger:
+```bash
+pnpm approve-builds --all
+# OR
+pnpm install --no-frozen-lockfile
+```

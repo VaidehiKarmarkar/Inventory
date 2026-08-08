@@ -439,18 +439,22 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   // Top Header Banner (Light Yellow Background)
   doc.rect(40, 40, 515, 75).fill("#fef9c3");
 
-  doc.fillColor("#000000").fontSize(15).font("Helvetica-Bold").text("Aloha Crystal World, Amravati", 55, 48);
-  doc.fontSize(8.5).font("Helvetica").fillColor("#000000").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 72);
+  // Top Center Title inside Yellow Banner
+  doc.fillColor("#000000").fontSize(14).font("Helvetica-Bold").text("INVOICE", 40, 46, { width: 515, align: "center" });
 
-  // Right side header info (Invoice No & Date in Black text)
+  // Shop Name & Address (Left side of yellow banner)
+  doc.fillColor("#000000").fontSize(12).font("Helvetica-Bold").text("Aloha Crystal World, Amravati", 55, 68);
+  doc.fontSize(8).font("Helvetica").fillColor("#000000").text("Vedanta Heights, Shri Colony, Dastur Nagar, Amravati. | Mob: 8369495476", 55, 88);
+
+  // Invoice Number & Date (Right side of yellow banner)
   const createdDateStr = new Date(order.createdAt).toLocaleDateString("en-IN", {
     day: "2-digit", month: "short", year: "numeric"
   });
-  doc.fillColor("#000000").fontSize(12).font("Helvetica-Bold").text(order.invoiceNumber, 360, 48, { width: 180, align: "right" });
-  doc.fontSize(9).font("Helvetica").fillColor("#000000").text(`Date: ${createdDateStr}`, 360, 68, { width: 180, align: "right" });
+  doc.fillColor("#000000").fontSize(11).font("Helvetica-Bold").text(order.invoiceNumber, 360, 68, { width: 180, align: "right" });
+  doc.fontSize(8).font("Helvetica").fillColor("#000000").text(`Date: ${createdDateStr}`, 360, 88, { width: 180, align: "right" });
 
   // Customer Details Box ("Mr. / Mrs.")
-  let currentY = 130;
+  let currentY = 125;
   doc.rect(40, currentY, 515, 75).fillAndStroke("#ffffff", "#e2e8f0");
   
   doc.fillColor("#666666").fontSize(8).font("Helvetica-Bold").text("Mr. / Mrs.", 55, currentY + 10);
@@ -465,7 +469,7 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   }
 
   // Items Table Header (Ink-Saving: Light grey fill with clean border)
-  currentY = 205;
+  currentY = 208;
   doc.rect(40, currentY, 515, 24).fillAndStroke("#f8fafc", "#cbd5e1");
   doc.fillColor("#333333").fontSize(9).font("Helvetica-Bold");
   doc.text("CRYSTAL TYPE", 50, currentY + 7, { width: 230, align: "left" });

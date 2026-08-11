@@ -8,7 +8,7 @@ const args = process.argv.slice(2);
 const execPath = process.env.npm_execpath;
 
 let status;
-if (execPath) {
+if (execPath && execPath.includes("pnpm")) {
   status = spawnSync(process.execPath, [execPath, ...args], {
     stdio: "inherit",
     env: process.env,

@@ -2,16 +2,21 @@
   "name": "workspace",
   "version": "0.0.0",
   "license": "MIT",
+  "private": true,
+  "main": "artifacts/api-server/dist/index.mjs",
   "scripts": {
     "preinstall": "node -e \"if(!process.env.npm_config_user_agent?.startsWith('pnpm')){console.error('Use pnpm instead');process.exit(1)}\"",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "dev": "pnpm -r --parallel --if-present run dev",
-    "migrate": "pnpm --filter @workspace/scripts run run-sql ./supabase/migrations/001_create_tables.sql",
-    "seed": "pnpm --filter @workspace/scripts run run-sql ./supabase/seed.sql",
+    "postinstall": "node scripts/fix-esbuild-perms.cjs",
+    "build": "node scripts/pnpm.cjs run typecheck && node scripts/pnpm.cjs -r --if-present run build",
+    "start": "node artifacts/api-server/dist/index.mjs",
+    "dev": "node scripts/pnpm.cjs -r --parallel --if-present run dev",
+    "migrate": "node scripts/pnpm.cjs --filter @workspace/scripts run run-sql ./supabase/migrations/001_create_tables.sql",
+    "seed": "node scripts/pnpm.cjs --filter @workspace/scripts run run-sql ./supabase/seed.sql",
+    "db:migrate": "node scripts/pnpm.cjs --filter @workspace/db run push",
+    "db:seed": "node scripts/pnpm.cjs --filter @workspace/db run seed",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "node scripts/pnpm.cjs run typecheck:libs && node scripts/pnpm.cjs -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
-  "private": true,
   "devDependencies": {
     "prettier": "^3.8.3",
     "typescript": "~5.9.3"

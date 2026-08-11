@@ -5,35 +5,22 @@ import bcrypt from "bcryptjs";
 async function main() {
   console.log("Seeding database...");
 
-  // 1. Create Default Users
-  const adminPasswordHash = await bcrypt.hash("admin123", 10);
-  const userPasswordHash = await bcrypt.hash("user123", 10);
+  // 1. Create Default Admin User (Only 1 credential required)
+  const adminPasswordHash = await bcrypt.hash("Eeya@123", 10);
 
   const [adminUser] = await db
     .insert(usersTable)
     .values({
-      name: "System Administrator",
-      username: "admin",
-      email: "admin@inventorymasters.com",
+      name: "Aloha Administrator",
+      username: "alohaamravati",
+      email: "alohaamravati@alohacrystalworld.com",
       passwordHash: adminPasswordHash,
       role: "admin",
       isActive: true,
     })
     .returning();
 
-  const [regularUser] = await db
-    .insert(usersTable)
-    .values({
-      name: "Inventory Staff",
-      username: "user",
-      email: "staff@inventorymasters.com",
-      passwordHash: userPasswordHash,
-      role: "user",
-      isActive: true,
-    })
-    .returning();
-
-  console.log(`Created users: Admin (ID: ${adminUser.id}), Staff (ID: ${regularUser.id})`);
+  console.log(`Created admin user: alohaamravati (ID: ${adminUser.id})`);
 
   // 2. Create Sample Products
   const sampleProducts = [

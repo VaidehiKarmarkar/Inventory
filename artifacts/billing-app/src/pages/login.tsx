@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Package, Loader2, KeyRound, ShieldAlert, Sparkles } from "lucide-react";
+import { Package, Loader2, KeyRound, Sparkles, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function Login() {
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const login = useLogin();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -19,6 +20,7 @@ export default function Login() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
     login.mutate(
       { data: { username, password } },
       {
@@ -27,10 +29,12 @@ export default function Login() {
           setLocation("/dashboard");
         },
         onError: (err: any) => {
+          const msg = err.response?.data?.error || err.response?.data?.message || (typeof err.message === "string" && !err.message.includes("status code") ? err.message : null) || "Invalid username or password. Please try again.";
+          setErrorMsg(msg);
           toast({
             variant: "destructive",
             title: "Login Failed",
-            description: err.message || "Invalid credentials. Please try again."
+            description: msg
           });
         }
       }
@@ -96,12 +100,20 @@ export default function Login() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <form onSubmit={handleLogin} className="space-y-4">
+              {errorMsg && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+              <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-xs font-semibold text-slate-600 dark:text-slate-400">Username</Label>
+                  <Label htmlFor="username" className="text-xs font-semibold text-slate-600 dark:text-slate-400">Username or Email</Label>
                   <Input
                     id="username"
-                    placeholder="Enter your username"
+                    name="username"
+                    autoComplete="off"
+                    placeholder="Enter your username or email"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
@@ -112,7 +124,9 @@ export default function Login() {
                   <Label htmlFor="password" className="text-xs font-semibold text-slate-600 dark:text-slate-400">Password</Label>
                   <Input
                     id="password"
+                    name="password"
                     type="password"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -125,19 +139,6 @@ export default function Login() {
                   Sign In
                 </Button>
               </form>
-
-              {/* Demo Credentials Helper Box */}
-              <div className="border border-border/80 bg-slate-50 dark:bg-zinc-900/60 p-4 rounded-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-bl-lg">
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                </div>
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2.5">System Access Control:</p>
-                <div className="bg-white dark:bg-zinc-950 p-3 rounded-lg border border-slate-100 dark:border-zinc-800 text-xs">
-                  <span className="font-bold text-[10px] uppercase text-indigo-500 tracking-wider">Admin Privilege Required</span>
-                  <div className="font-semibold text-slate-700 dark:text-slate-300 mt-1 font-mono">admin / admin123</div>
-                  <p className="text-[11px] text-muted-foreground mt-1">Non-admin user access disabled. Full management active.</p>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>

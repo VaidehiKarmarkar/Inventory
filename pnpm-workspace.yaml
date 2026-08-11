@@ -2,7 +2,6 @@
 # 1 day before allowing installation. Do not disable this setting.
 minimumReleaseAge: 1440
 
-
 packages:
   - artifacts/*
   - lib/*
@@ -10,12 +9,12 @@ packages:
   - scripts
 
 catalog:
-  '@tailwindcss/vite': ^4.1.14
-  '@tanstack/react-query': ^5.90.21
-  '@types/node': ^25.3.3
-  '@types/react': ^19.2.0
-  '@types/react-dom': ^19.2.0
-  '@vitejs/plugin-react': ^5.0.4
+  "@tailwindcss/vite": ^4.1.14
+  "@tanstack/react-query": ^5.90.21
+  "@types/node": ^25.3.3
+  "@types/react": ^19.2.0
+  "@types/react-dom": ^19.2.0
+  "@vitejs/plugin-react": ^5.0.4
   class-variance-authority: ^0.7.1
   clsx: ^2.1.1
   drizzle-orm: ^0.45.2
@@ -34,11 +33,21 @@ catalog:
 
 autoInstallPeers: false
 
+# pnpm 10 (removed in v11 — kept for older Hostinger images)
 onlyBuiltDependencies:
-  - '@swc/core'
-  - esbuild
+  - "@swc/core"
   - msw
   - unrs-resolver
+ignoredBuiltDependencies:
+  - esbuild
+
+# pnpm 11: required. `false` = reviewed skip (does NOT trigger ERR_PNPM_IGNORED_BUILDS).
+# Optional @esbuild/* bins + root postinstall chmod are enough for vite/esbuild.
+allowBuilds:
+  esbuild: false
+  "@swc/core": true
+  msw: true
+  unrs-resolver: true
 
 overrides:
   # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it

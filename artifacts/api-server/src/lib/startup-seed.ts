@@ -13,29 +13,19 @@ export async function seedIfEmpty() {
 
   logger.info("No users found — seeding default data...");
 
-  const adminPasswordHash = await bcrypt.hash("admin123", 10);
-  const userPasswordHash = await bcrypt.hash("user123", 10);
+  const adminPasswordHash = await bcrypt.hash("Eeya@123", 10);
 
   const [adminUser] = await db
     .insert(usersTable)
     .values({
-      name: "System Administrator",
-      username: "admin",
-      email: "admin@inventorymasters.com",
+      name: "Aloha Administrator",
+      username: "alohaamravati",
+      email: "alohaamravati@alohacrystalworld.com",
       passwordHash: adminPasswordHash,
       role: "admin",
       isActive: true,
     })
     .returning();
-
-  await db.insert(usersTable).values({
-    name: "Inventory Staff",
-    username: "user",
-    email: "staff@inventorymasters.com",
-    passwordHash: userPasswordHash,
-    role: "user",
-    isActive: true,
-  });
 
   const sampleProducts = [
     { name: "BT Hanging", price: "775", qty: 10 },

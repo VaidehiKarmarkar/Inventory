@@ -29,14 +29,16 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Enable SSL for Supabase or when DATABASE_SSL=true (required for hosted PG)
 const useSSL =
   process.env.DATABASE_SSL === "true" ||
-  process.env.DATABASE_URL.includes("supabase");
+  process.env.DB_SSL === "true" ||
+  (process.env.NODE_ENV === "production" &&
+    !process.env.DATABASE_URL.includes("localhost") &&
+    !process.env.DATABASE_URL.includes("127.0.0.1"));
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: useSSL ? { rejectUnauthorized: false } : undefined,
+  ssl: useSSL ? { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false" } : false,
 });
 export const db = drizzle(pool, { schema });
 

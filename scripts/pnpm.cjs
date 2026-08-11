@@ -16,7 +16,7 @@ if (execPath && execPath.includes("pnpm")) {
 } else {
   // Hostinger does not have pnpm globally installed on the PATH by default.
   // Use npx to securely locate the locally installed pnpm binary or fetch it.
-  status = spawnSync("npx", ["--no-install", "pnpm", ...args], {
+  status = spawnSync("npx", ["--yes", "pnpm", ...args], {
     stdio: "inherit",
     env: process.env,
     shell: process.platform === "win32",

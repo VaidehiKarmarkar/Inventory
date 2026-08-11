@@ -29,7 +29,15 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Enable SSL for Supabase or when DATABASE_SSL=true (required for hosted PG)
+const useSSL =
+  process.env.DATABASE_SSL === "true" ||
+  process.env.DATABASE_URL.includes("supabase");
+
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: useSSL ? { rejectUnauthorized: false } : undefined,
+});
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";

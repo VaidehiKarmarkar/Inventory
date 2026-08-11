@@ -1,12 +1,8 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
 # compiled output
 dist
 tmp
 out-tsc
 *.tsbuildinfo
-.expo
-.expo-shared
 
 # dependencies
 node_modules
@@ -41,14 +37,13 @@ testem.log
 .DS_Store
 Thumbs.db
 
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
-
-# Replit
+# Replit (prevent re-creation)
+.replit
+.replit-artifact/
 .cache/
 .local/
 
-# local env and cookies secrets
+# local env and secrets
 .env
 .env.local
 .env.development

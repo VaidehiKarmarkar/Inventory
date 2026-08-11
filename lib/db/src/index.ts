@@ -18,7 +18,7 @@ if (!process.env.DATABASE_URL) {
       try {
         process.loadEnvFile(envPath);
         if (process.env.DATABASE_URL) break;
-      } catch (e) {}
+      } catch (e) { }
     }
   }
 }

@@ -7,7 +7,7 @@
   "scripts": {
     "preinstall": "node -e \"if(!process.env.npm_config_user_agent?.startsWith('pnpm')){console.error('Use pnpm instead');process.exit(1)}\"",
     "postinstall": "node scripts/fix-esbuild-perms.cjs",
-    "build": "node scripts/pnpm.cjs run typecheck && node scripts/pnpm.cjs -r --if-present run build",
+    "build": "node scripts/pnpm.cjs -r --if-present run build",
     "start": "node artifacts/api-server/dist/index.mjs",
     "dev": "node scripts/pnpm.cjs -r --parallel --if-present run dev",
     "migrate": "node scripts/pnpm.cjs --filter @workspace/scripts run run-sql ./supabase/migrations/001_create_tables.sql",

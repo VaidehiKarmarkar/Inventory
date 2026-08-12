@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:16
+    container_name: inventory-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: inventory_masters
+    ports:
+      # Host 5433 avoids clashing with other local Postgres on 5432
+      - "5433:5432"
+    volumes:
+      - inventory_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventory_masters"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory-migrate
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/inventory_masters?sslmode=disable
+      DB_SSL: "false"
+      PGSSLMODE: disable
+    command:
+      [
+        "pnpm",
+        "--filter",
+        "@workspace/db",
+        "run",
+        "push",
+      ]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/inventory_masters?sslmode=disable
+      DB_SSL: "false"
+      PGSSLMODE: disable
+      SESSION_SECRET: change-me-to-a-long-random-string
+      COOKIE_SECURE: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  inventory_pgdata:

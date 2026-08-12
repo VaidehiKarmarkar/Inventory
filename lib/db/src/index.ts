@@ -29,15 +29,42 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-const useSSL =
-  process.env.DB_SSL === "true" ||
-  (process.env.NODE_ENV === "production" &&
-    !process.env.DATABASE_URL.includes("localhost") &&
-    !process.env.DATABASE_URL.includes("127.0.0.1"));
+/** Explicit DB_SSL wins; URL sslmode honored; Docker service hosts never get auto-SSL. */
+function shouldUseSsl(databaseUrl: string): boolean {
+  if (process.env.DB_SSL === "true") return true;
+  if (process.env.DB_SSL === "false") return false;
+
+  try {
+    const url = new URL(databaseUrl);
+    const sslmode = url.searchParams.get("sslmode")?.toLowerCase();
+    if (sslmode === "disable") return false;
+    if (
+      sslmode === "require" ||
+      sslmode === "verify-ca" ||
+      sslmode === "verify-full"
+    ) {
+      return true;
+    }
+
+    if (process.env.NODE_ENV !== "production") return false;
+
+    const host = url.hostname;
+    if (host === "localhost" || host === "127.0.0.1") return false;
+    // Compose/Kubernetes short names (e.g. "db") — no TLS on the private network
+    if (!host.includes(".")) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const useSSL = shouldUseSsl(process.env.DATABASE_URL);
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: useSSL ? { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false" } : false,
+  ssl: useSSL
+    ? { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false" }
+    : false,
 });
 export const db = drizzle(pool, { schema });
 

@@ -8,6 +8,7 @@
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "postinstall": "node scripts/fix-esbuild-perms.cjs",
     "build": "node scripts/pnpm.cjs run typecheck && node scripts/pnpm.cjs -r --if-present run build",
+    "build:docker": "pnpm exec tsc --build && pnpm --filter @workspace/api-server --filter @workspace/billing-app run build",
     "start": "node artifacts/api-server/dist/index.mjs",
     "dev": "node scripts/pnpm.cjs -r --parallel --if-present run dev",
     "db:migrate": "node scripts/pnpm.cjs --filter @workspace/db run push",

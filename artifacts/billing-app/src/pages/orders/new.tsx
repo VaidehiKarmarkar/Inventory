@@ -561,23 +561,29 @@ export default function NewOrder() {
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
-                  <Label htmlFor="discountSelect" className="text-xs text-muted-foreground font-medium">Discount (%)</Label>
-                  <Select
-                    value={String(discountPercentage)}
-                    onValueChange={(v) => setDiscountPercentage(Number(v))}
-                  >
-                    <SelectTrigger id="discountSelect" className="h-7 w-24 text-xs px-2" data-testid="select-discount">
-                      <SelectValue placeholder="Select Discount" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">0%</SelectItem>
-                      <SelectItem value="1">1%</SelectItem>
-                      <SelectItem value="2">2%</SelectItem>
-                      <SelectItem value="3">3%</SelectItem>
-                      <SelectItem value="4">4%</SelectItem>
-                      <SelectItem value="5">5%</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="discountInput" className="text-xs text-muted-foreground font-medium">Discount (%)</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      id="discountInput"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={discountPercentage}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === "") {
+                          setDiscountPercentage(0);
+                        } else {
+                          const val = Number(raw);
+                          setDiscountPercentage(isNaN(val) ? 0 : Math.max(0, val));
+                        }
+                      }}
+                      className="h-7 w-20 text-xs px-2 text-right font-semibold bg-background"
+                      data-testid="input-discount"
+                    />
+                    <span className="text-xs font-semibold">%</span>
+                  </div>
                 </div>
                 {discNum > 0 && (
                   <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400 font-medium">

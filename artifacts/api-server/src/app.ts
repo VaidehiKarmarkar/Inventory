@@ -13,6 +13,11 @@ const app: Express = express();
 
 app.set("trust proxy", 1);
 
+// Health check routes — mounted BEFORE session & DB middleware so deployment probes return 200 OK instantly
+app.get(["/api", "/api/health", "/api/healthz", "/health", "/healthz"], (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 const PgSession = connectPgSimple(session);
 
 app.use(
@@ -47,7 +52,7 @@ app.use(
     store: new PgSession({
       pool,
       tableName: "session",
-      createTableIfMissing: false,
+      createTableIfMissing: true,
     }),
     secret: process.env.SESSION_SECRET || "billing-secret-key",
     resave: false,

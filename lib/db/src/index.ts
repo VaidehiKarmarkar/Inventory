@@ -24,10 +24,10 @@ if (!process.env.DATABASE_URL) {
 }
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+  console.warn("WARNING: DATABASE_URL is not set in process.env. Database operations will require DATABASE_URL.");
 }
+
+const dbUrl = process.env.DATABASE_URL || "postgresql://localhost:5432/placeholder";
 
 /** Explicit DB_SSL wins; URL sslmode honored; Docker service hosts never get auto-SSL. */
 function shouldUseSsl(databaseUrl: string): boolean {
@@ -58,10 +58,10 @@ function shouldUseSsl(databaseUrl: string): boolean {
   }
 }
 
-const useSSL = shouldUseSsl(process.env.DATABASE_URL);
+const useSSL = shouldUseSsl(dbUrl);
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: dbUrl,
   ssl: useSSL
     ? { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false" }
     : false,

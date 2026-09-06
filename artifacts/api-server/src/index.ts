@@ -29,18 +29,20 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-seedIfEmpty()
-  .then(() => {
-    // Hostinger proxies to 0.0.0.0:$PORT — do not bind localhost-only.
-    app.listen(port, "0.0.0.0", (err) => {
-      if (err) {
-        logger.error({ err }, "Error listening on port");
-        process.exit(1);
-      }
-      logger.info({ port }, "Server listening");
-    });
-  })
-  .catch((err) => {
-    logger.error({ err }, "Startup seed failed");
+// Start HTTP listener immediately so health checks pass on Replit / Hostinger / Cloud deployments
+app.listen(port, "0.0.0.0", (err) => {
+  if (err) {
+    logger.error({ err }, "Error listening on port");
     process.exit(1);
-  });
+  }
+  logger.info({ port }, `Server listening on 0.0.0.0:${port}`);
+
+  // Run startup database seed in background without blocking server bind
+  seedIfEmpty()
+    .then(() => {
+      logger.info("Startup seed completed successfully");
+    })
+    .catch((err) => {
+      logger.error({ err }, "Startup seed failed — verify DATABASE_URL is set in environment secrets");
+    });
+});

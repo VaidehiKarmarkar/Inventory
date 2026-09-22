@@ -9,10 +9,18 @@ const execPath = process.env.npm_execpath;
 
 let status;
 if (execPath) {
-  status = spawnSync(process.execPath, [execPath, ...args], {
-    stdio: "inherit",
-    env: process.env,
-  }).status;
+  if (execPath.endsWith(".exe") || execPath.endsWith(".cmd") || execPath.endsWith(".bat")) {
+    status = spawnSync(execPath, args, {
+      stdio: "inherit",
+      env: process.env,
+      shell: true,
+    }).status;
+  } else {
+    status = spawnSync(process.execPath, [execPath, ...args], {
+      stdio: "inherit",
+      env: process.env,
+    }).status;
+  }
 } else {
   status = spawnSync("pnpm", args, {
     stdio: "inherit",

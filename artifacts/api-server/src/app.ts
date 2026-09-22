@@ -19,6 +19,18 @@ app.get(["/api", "/api/health", "/api/healthz", "/health", "/healthz"], (_req, r
 });
 
 const PgSession = connectPgSimple(session);
+const sessionStore = new PgSession({
+  pool,
+  tableName: "session",
+  createTableIfMissing: true,
+  errorLog: (err) => {
+    logger.error({ err }, "PgSession error — database connection may be initializing");
+  },
+});
+
+sessionStore.on("error", (err) => {
+  logger.error({ err }, "PgSession error event captured");
+});
 
 app.use(
   pinoHttp({
@@ -49,11 +61,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   session({
-    store: new PgSession({
-      pool,
-      tableName: "session",
-      createTableIfMissing: true,
-    }),
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || "billing-secret-key",
     resave: false,
     saveUninitialized: false,

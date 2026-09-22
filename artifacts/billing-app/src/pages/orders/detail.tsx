@@ -275,48 +275,45 @@ export default function OrderDetail() {
                 </tr>
               ))}
             </tbody>
+            <tfoot className="border-t divide-y">
+              <tr className="text-sm">
+                <td colSpan={4} className="text-right px-4 py-2.5 font-medium text-muted-foreground">Subtotal</td>
+                <td className="px-6 py-2.5 text-right font-semibold">{formatCurrency(order.subtotal)}</td>
+              </tr>
+              {order.gstAmount > 0 && (
+                <tr className="text-sm">
+                  <td colSpan={4} className="text-right px-4 py-2.5 font-medium text-muted-foreground">GST ({order.gstPercentage}%)</td>
+                  <td className="px-6 py-2.5 text-right font-semibold">{formatCurrency(order.gstAmount)}</td>
+                </tr>
+              )}
+              {(order.referralCharges ?? 0) > 0 && (
+                <tr className="text-sm">
+                  <td colSpan={4} className="text-right px-4 py-2.5 font-medium text-muted-foreground">Referral Charges</td>
+                  <td className="px-6 py-2.5 text-right font-semibold">{formatCurrency(order.referralCharges!)}</td>
+                </tr>
+              )}
+              {(order.discount ?? 0) > 0 && (
+                <tr className="text-sm">
+                  <td colSpan={4} className="text-right px-4 py-2.5 font-medium text-muted-foreground">Discount</td>
+                  <td className="px-6 py-2.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">-{formatCurrency(order.discount!)}</td>
+                </tr>
+              )}
+              <tr className="text-base font-bold bg-muted/20 border-t border-b">
+                <td colSpan={4} className="text-right px-4 py-3 font-extrabold">Grand Total</td>
+                <td className="px-6 py-3 text-right font-extrabold text-primary">{formatCurrency(order.grandTotal)}</td>
+              </tr>
+              <tr className="text-sm">
+                <td colSpan={4} className="text-right px-4 py-2.5 font-medium text-muted-foreground">Amount Paid ({order.paymentMethod || "Cash"})</td>
+                <td className="px-6 py-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(order.paidAmount)}</td>
+              </tr>
+              {order.pendingAmount > 0 && (
+                <tr className="text-sm bg-red-500/10 text-red-600 dark:text-red-400 font-bold">
+                  <td colSpan={4} className="text-right px-4 py-2.5 font-bold">Pending Balance</td>
+                  <td className="px-6 py-2.5 text-right font-extrabold">{formatCurrency(order.pendingAmount)}</td>
+                </tr>
+              )}
+            </tfoot>
           </table>
-
-          <div className="border-t p-6 space-y-2 ml-auto max-w-xs">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span>{formatCurrency(order.subtotal)}</span>
-            </div>
-            {order.gstAmount > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">GST ({order.gstPercentage}%)</span>
-                <span>{formatCurrency(order.gstAmount)}</span>
-              </div>
-            )}
-            {(order.referralCharges ?? 0) > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Referral Charges</span>
-                <span>{formatCurrency(order.referralCharges!)}</span>
-              </div>
-            )}
-            {(order.discount ?? 0) > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Discount</span>
-                <span className="text-emerald-600 dark:text-emerald-400">-{formatCurrency(order.discount!)}</span>
-              </div>
-            )}
-            <Separator />
-            <div className="flex justify-between font-bold text-base">
-              <span>Grand Total</span>
-              <span>{formatCurrency(order.grandTotal)}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Amount Paid ({order.paymentMethod || "Cash"})</span>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(order.paidAmount)}</span>
-            </div>
-            {order.pendingAmount > 0 && (
-              <div className="flex justify-between text-sm p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 font-bold animate-pulse">
-                <span>Pending Balance</span>
-                <span>{formatCurrency(order.pendingAmount)}</span>
-              </div>
-            )}
-          </div>
 
           <div className="flex flex-col sm:flex-row justify-between items-end border-t p-6 gap-4">
             <p className="text-xs text-muted-foreground italic">Thank you for your business!</p>

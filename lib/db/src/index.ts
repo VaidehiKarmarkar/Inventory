@@ -66,6 +66,12 @@ export const pool = new Pool({
     ? { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false" }
     : false,
 });
+
+pool.on("error", (err) => {
+  console.error("Unexpected error on idle PostgreSQL client", err);
+});
+
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";
+

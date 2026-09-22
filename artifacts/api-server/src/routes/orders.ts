@@ -475,7 +475,7 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
   doc.text("CRYSTAL TYPE", 50, currentY + 7, { width: 230, align: "left" });
   doc.text("QTY", 280, currentY + 7, { width: 50, align: "center" });
   doc.text("UNIT PRICE", 340, currentY + 7, { width: 90, align: "right" });
-  doc.text("TOTAL", 440, currentY + 7, { width: 100, align: "right" });
+  doc.text("TOTAL", 440, currentY + 7, { width: 115, align: "right" });
 
   currentY += 24;
 
@@ -493,7 +493,7 @@ router.get("/orders/:id/invoice", requireAuth, async (req, res): Promise<void> =
     doc.text(item.productName, 50, currentY + 7, { width: 230, align: "left" });
     doc.text(String(item.quantity), 280, currentY + 7, { width: 50, align: "center" });
     doc.text(`Rs. ${Number(item.unitPrice).toFixed(2)}`, 340, currentY + 7, { width: 90, align: "right" });
-    doc.text(`Rs. ${Number(item.total).toFixed(2)}`, 440, currentY + 7, { width: 100, align: "right" });
+    doc.text(`Rs. ${Number(item.total).toFixed(2)}`, 440, currentY + 7, { width: 115, align: "right" });
 
     doc.moveTo(40, currentY + 24).lineTo(555, currentY + 24).strokeColor("#e2e8f0").stroke();
     currentY += 24;

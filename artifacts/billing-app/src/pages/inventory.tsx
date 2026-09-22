@@ -54,8 +54,8 @@ export default function Inventory() {
   );
 
   const { data: productsData } = useListProducts(
-    { limit: 100 },
-    { query: { queryKey: getListProductsQueryKey({ limit: 100 }) } }
+    { limit: 2500 },
+    { query: { queryKey: getListProductsQueryKey({ limit: 2500 }) } }
   );
 
   const adjustInventory = useAdjustInventory();

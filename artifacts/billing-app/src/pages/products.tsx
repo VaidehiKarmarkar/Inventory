@@ -76,8 +76,8 @@ export default function Products() {
   );
 
   const { data: allProductsData } = useListProducts(
-    { limit: 100 },
-    { query: { queryKey: getListProductsQueryKey({ limit: 100 }) } }
+    { limit: 2500 },
+    { query: { queryKey: getListProductsQueryKey({ limit: 2500 }) } }
   );
 
   const createProduct = useCreateProduct();

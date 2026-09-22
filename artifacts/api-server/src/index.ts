@@ -30,11 +30,7 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 // Start HTTP listener immediately so health checks pass on Replit / Hostinger / Cloud deployments
-app.listen(port, "0.0.0.0", (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
+const server = app.listen(port, "0.0.0.0", () => {
   logger.info({ port }, `Server listening on 0.0.0.0:${port}`);
 
   // Run startup database seed in background without blocking server bind
@@ -46,3 +42,9 @@ app.listen(port, "0.0.0.0", (err) => {
       logger.error({ err }, "Startup seed failed — verify DATABASE_URL is set in environment secrets");
     });
 });
+
+server.on("error", (err) => {
+  logger.error({ err, port }, "Error listening on port");
+  process.exit(1);
+});
+

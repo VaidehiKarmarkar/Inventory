@@ -45,6 +45,7 @@ export default function Inventory() {
   const [productFilter, setProductFilter] = useState<number | undefined>();
   const [search, setSearch] = useState("");
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+  const [adjustProductComboboxOpen, setAdjustProductComboboxOpen] = useState(false);
   const [page, setPage] = useState(1);
 
   const limit = 10;
@@ -298,26 +299,63 @@ export default function Inventory() {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField control={form.control} name="productId" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Product</FormLabel>
-                  <Select value={String(field.value || "")} onValueChange={(v) => field.onChange(Number(v))}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-inventory-product">
-                        <SelectValue placeholder="Select product" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {productsData?.data?.map(p => (
-                        <SelectItem key={p.id} value={String(p.id)}>
-                          {p.name} ({p.availableQuantity} in stock)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <FormField control={form.control} name="productId" render={({ field }) => {
+                const selectedProduct = productsData?.data?.find(p => p.id === field.value);
+                return (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Product</FormLabel>
+                    <Popover open={adjustProductComboboxOpen} onOpenChange={setAdjustProductComboboxOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={adjustProductComboboxOpen}
+                            className={`w-full justify-between font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                            data-testid="select-inventory-product"
+                          >
+                            <span className="truncate">
+                              {selectedProduct
+                                ? `${selectedProduct.name} (${selectedProduct.availableQuantity} in stock)`
+                                : "Select product..."}
+                            </span>
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[380px] sm:w-[460px] p-0 z-[60]" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search product by name..." data-testid="input-search-adjust-product" />
+                          <CommandList className="max-h-[240px] overflow-y-auto">
+                            <CommandEmpty>No matching product found.</CommandEmpty>
+                            <CommandGroup heading="Select Product to Adjust">
+                              {productsData?.data?.map((p) => (
+                                <CommandItem
+                                  key={p.id}
+                                  value={`${p.name} #${p.id}`}
+                                  onSelect={() => {
+                                    field.onChange(p.id);
+                                    setAdjustProductComboboxOpen(false);
+                                  }}
+                                  className="flex items-center justify-between py-2 px-3 cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2 truncate">
+                                    <Package className="w-3.5 h-3.5 shrink-0 text-primary opacity-70" />
+                                    <span className="font-semibold text-xs text-foreground truncate">{p.name}</span>
+                                    <span className="text-[11px] text-muted-foreground">({p.availableQuantity} in stock)</span>
+                                  </div>
+                                  {field.value === p.id && <Check className="w-4 h-4 text-primary shrink-0 ml-2" />}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }} />
               <FormField control={form.control} name="actionType" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Action</FormLabel>

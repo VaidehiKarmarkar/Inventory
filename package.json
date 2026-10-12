@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "private": true,
-  "main": "artifacts/api-server/dist/index.mjs",
+  "main": "electron/main.js",
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "postinstall": "node scripts/fix-esbuild-perms.cjs",
@@ -11,13 +11,34 @@
     "build:docker": "pnpm exec tsc --build && pnpm --filter @workspace/api-server --filter @workspace/billing-app run build",
     "start": "node artifacts/api-server/dist/index.mjs",
     "dev": "node scripts/pnpm.cjs -r --parallel --if-present run dev",
+    "electron:start": "electron .",
+    "electron:build": "node scripts/pnpm.cjs run build && electron-builder",
     "db:migrate": "node scripts/pnpm.cjs --filter @workspace/db run push",
     "db:seed": "node scripts/pnpm.cjs --filter @workspace/db run seed",
     "typecheck:libs": "tsc --build",
     "typecheck": "node scripts/pnpm.cjs run typecheck:libs && node scripts/pnpm.cjs -r --if-present run typecheck"
   },
   "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
     "prettier": "^3.8.3",
     "typescript": "~5.9.3"
+  },
+  "build": {
+    "appId": "com.optimagodown.inventory",
+    "productName": "OptimaGodown",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "artifacts/api-server/dist/**/*",
+      "artifacts/billing-app/dist/**/*",
+      "lib/db/dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    }
   }
 }

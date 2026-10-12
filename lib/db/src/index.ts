@@ -27,12 +27,19 @@ if (!process.env.DATABASE_URL) {
   console.warn("WARNING: DATABASE_URL is not set in process.env. Database operations will require DATABASE_URL.");
 }
 
-const dbUrl = process.env.DATABASE_URL || "postgresql://localhost:5432/placeholder";
+const DEFAULT_DB_URL =
+  "postgresql://postgres.qqfvfizhzfkthhlqrahv:JukxPJpwCyyUruXm@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres";
+
+const dbUrl = process.env.DATABASE_URL || DEFAULT_DB_URL;
 
 /** Explicit DB_SSL wins; URL sslmode honored; Docker service hosts never get auto-SSL. */
 function shouldUseSsl(databaseUrl: string): boolean {
   if (process.env.DB_SSL === "true") return true;
   if (process.env.DB_SSL === "false") return false;
+
+  if (databaseUrl.includes("supabase.com") || databaseUrl.includes("supabase.co")) {
+    return true;
+  }
 
   try {
     const url = new URL(databaseUrl);

@@ -83,11 +83,30 @@ app.use(
 
 app.use("/api", router);
 
-// Hostinger runs a single Node process — serve the Vite SPA from the same server.
-const publicDir = path.resolve(
-  process.cwd(),
-  process.env.STATIC_DIR || "artifacts/billing-app/dist/public",
-);
+function getPublicDir(): string {
+  if (process.env.STATIC_DIR && fs.existsSync(process.env.STATIC_DIR)) {
+    return process.env.STATIC_DIR;
+  }
+
+  const candidatePaths = [
+    path.resolve(process.cwd(), "artifacts/billing-app/dist/public"),
+    path.resolve(__dirname, "../../billing-app/dist/public"),
+    path.resolve(__dirname, "../billing-app/dist/public"),
+    path.resolve(__dirname, "./billing-app/dist/public"),
+    path.resolve(process.cwd(), "resources/app/artifacts/billing-app/dist/public"),
+    path.resolve(process.cwd(), "resources/artifacts/billing-app/dist/public"),
+  ];
+
+  for (const candidate of candidatePaths) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return candidatePaths[0];
+}
+
+const publicDir = getPublicDir();
 
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir, { index: false }));

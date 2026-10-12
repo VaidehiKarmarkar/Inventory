@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { db, usersTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/auth";
 import {
   CreateUserBody,
@@ -34,8 +34,8 @@ router.get("/users", requireAdmin, async (_req, res): Promise<void> => {
 });
 
 router.post("/users", requireAdmin, async (req, res): Promise<void> => {
-  const [existingUsers] = await db.select({ count: sql<number>`count(*)::int` }).from(usersTable);
-  if ((existingUsers?.count ?? 0) >= 1) {
+  const [existingUsers] = await db.select({ count: count() }).from(usersTable);
+  if (Number(existingUsers?.count ?? 0) >= 1) {
     res.status(400).json({ error: "System is configured for single master user account only" });
     return;
   }

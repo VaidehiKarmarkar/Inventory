@@ -2,18 +2,14 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
 import fs from "node:fs";
 import path from "node:path";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { pool } from "@workspace/db";
 
 const app: Express = express();
 
 app.set("trust proxy", 1);
-
-const PgSession = connectPgSimple(session);
 
 app.use(
   pinoHttp({
@@ -44,30 +40,39 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   session({
-    store: new PgSession({
-      pool,
-      tableName: "session",
-      createTableIfMissing: false,
-    }),
-    secret: process.env.SESSION_SECRET || "billing-secret-key",
+    secret: process.env.SESSION_SECRET || "billing-secret-key-offline",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production" || process.env.COOKIE_SECURE === "true",
+      secure: process.env.COOKIE_SECURE === "true",
       httpOnly: true,
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     },
   }),
 );
 
 app.use("/api", router);
 
-// Hostinger runs a single Node process — serve the Vite SPA from the same server.
-const publicDir = path.resolve(
-  process.cwd(),
-  process.env.STATIC_DIR || "artifacts/billing-app/dist/public",
-);
+// Serve the Vite SPA for desktop and browser
+function getPublicDir(): string {
+  const candidates = [
+    process.env.STATIC_DIR,
+    path.resolve(process.cwd(), "artifacts/billing-app/dist/public"),
+    path.resolve(__dirname, "../../billing-app/dist/public"),
+    path.resolve(__dirname, "../billing-app/dist/public"),
+    path.resolve(process.cwd(), "resources/app/artifacts/billing-app/dist/public"),
+  ].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return path.resolve(process.cwd(), "artifacts/billing-app/dist/public");
+}
+
+const publicDir = getPublicDir();
 
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir, { index: false }));

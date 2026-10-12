@@ -9,10 +9,18 @@ const execPath = process.env.npm_execpath;
 
 let status;
 if (execPath && execPath.includes("pnpm")) {
-  status = spawnSync(process.execPath, [execPath, ...args], {
-    stdio: "inherit",
-    env: process.env,
-  }).status;
+  if (execPath.endsWith(".exe")) {
+    status = spawnSync(execPath, args, {
+      stdio: "inherit",
+      env: process.env,
+      shell: process.platform === "win32",
+    }).status;
+  } else {
+    status = spawnSync(process.execPath, [execPath, ...args], {
+      stdio: "inherit",
+      env: process.env,
+    }).status;
+  }
 } else {
   // Hostinger does not have pnpm globally installed on the PATH by default.
   // Use npx to securely locate the locally installed pnpm binary or fetch it.

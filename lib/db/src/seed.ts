@@ -1,9 +1,10 @@
-import { db } from "./index";
+import { db, initDb } from "./index";
 import { usersTable, productsTable, inventoryTable } from "./schema";
 import bcrypt from "bcryptjs";
 
 async function main() {
   console.log("Seeding database...");
+  await initDb();
 
   // 1. Create Default Admin User (Only 1 credential required)
   const adminPasswordHash = await bcrypt.hash("Eeya@123", 10);

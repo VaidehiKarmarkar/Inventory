@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, ordersTable, orderItemsTable, productsTable, inventoryTable, usersTable, orderPaymentsTable } from "@workspace/db";
-import { eq, ilike, gte, lte, and, sql, or, desc } from "drizzle-orm";
+import { eq, like, gte, lte, and, sql, or, desc, count } from "drizzle-orm";
 import { requireAuth, getSessionUser } from "../middlewares/auth";
 import {
   CreateOrderBody,
@@ -69,8 +69,8 @@ router.get("/orders", requireAuth, async (req, res): Promise<void> => {
   if (user.role !== "admin") conditions.push(eq(ordersTable.createdById, user.id) as ReturnType<typeof eq>);
   if (search) conditions.push(
     or(
-      ilike(ordersTable.customerName, `%${search}%`),
-      ilike(ordersTable.invoiceNumber, `%${search}%`),
+      like(ordersTable.customerName, `%${search}%`),
+      like(ordersTable.invoiceNumber, `%${search}%`),
     ) as ReturnType<typeof eq>
   );
   if (dateFrom) conditions.push(gte(ordersTable.createdAt, new Date(dateFrom)) as ReturnType<typeof eq>);
@@ -83,7 +83,7 @@ router.get("/orders", requireAuth, async (req, res): Promise<void> => {
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [totalRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: count() })
     .from(ordersTable)
     .where(whereClause);
 
@@ -117,7 +117,7 @@ router.get("/orders", requireAuth, async (req, res): Promise<void> => {
 
   res.json({
     data: orders.map(o => numericFields(o as Record<string, unknown>)),
-    total: totalRow.count,
+    total: Number(totalRow?.count ?? 0),
     page,
     limit,
   });

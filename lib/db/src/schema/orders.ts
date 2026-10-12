@@ -1,27 +1,28 @@
-import { pgTable, text, serial, integer, numeric, timestamp } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { sql } from "drizzle-orm";
 import { usersTable } from "./users";
 
-export const ordersTable = pgTable("orders", {
-  id: serial("id").primaryKey(),
+export const ordersTable = sqliteTable("orders", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   invoiceNumber: text("invoice_number").notNull().unique(),
   customerName: text("customer_name").notNull(),
   customerMobile: text("customer_mobile").notNull(),
   customerEmail: text("customer_email"),
   customerAddress: text("customer_address"),
-  subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
-  gstPercentage: numeric("gst_percentage", { precision: 5, scale: 2 }).notNull().default("0"),
-  gstAmount: numeric("gst_amount", { precision: 12, scale: 2 }).notNull(),
-  referralCharges: numeric("referral_charges", { precision: 12, scale: 2 }).notNull().default("0"),
-  discount: numeric("discount", { precision: 12, scale: 2 }).notNull().default("0"),
-  grandTotal: numeric("grand_total", { precision: 12, scale: 2 }).notNull(),
-  paidAmount: numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
-  pendingAmount: numeric("pending_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  subtotal: text("subtotal").notNull(),
+  gstPercentage: text("gst_percentage").notNull().default("0"),
+  gstAmount: text("gst_amount").notNull(),
+  referralCharges: text("referral_charges").notNull().default("0"),
+  discount: text("discount").notNull().default("0"),
+  grandTotal: text("grand_total").notNull(),
+  paidAmount: text("paid_amount").notNull().default("0"),
+  pendingAmount: text("pending_amount").notNull().default("0"),
   paymentMethod: text("payment_method").notNull().default("Cash"),
   status: text("status").notNull().default("completed"),
   createdById: integer("created_by_id").references(() => usersTable.id),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
 });
 
 export const insertOrderSchema = createInsertSchema(ordersTable).omit({ id: true, createdAt: true });

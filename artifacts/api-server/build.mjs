@@ -3,7 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm } from "node:fs/promises";
+import fs from "node:fs";
+import { rm, cp } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -50,6 +51,19 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
   });
+
+  // Copy native libsql node binding into dist/node_modules/@libsql so standalone/packaged execution works out of the box
+  const rootDir = path.resolve(artifactDir, "../..");
+  const pnpmDir = path.resolve(rootDir, "node_modules/.pnpm");
+  if (fs.existsSync(pnpmDir)) {
+    const entries = fs.readdirSync(pnpmDir);
+    const winLibsql = entries.find(e => e.startsWith("@libsql+win32-x64-msvc"));
+    if (winLibsql) {
+      const src = path.resolve(pnpmDir, winLibsql, "node_modules/@libsql/win32-x64-msvc");
+      const dest = path.resolve(distDir, "node_modules/@libsql/win32-x64-msvc");
+      await cp(src, dest, { recursive: true });
+    }
+  }
 }
 
 buildAll().catch((err) => {

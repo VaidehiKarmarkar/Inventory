@@ -1,10 +1,11 @@
-import { db } from "@workspace/db";
+import { db, initDb } from "@workspace/db";
 import { usersTable, productsTable, inventoryTable } from "@workspace/db/schema";
 import { count } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { logger } from "./logger";
 
 export async function seedIfEmpty() {
+  await initDb();
   const [{ value: userCount }] = await db
     .select({ value: count() })
     .from(usersTable);

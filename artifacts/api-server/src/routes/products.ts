@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, productsTable } from "@workspace/db";
-import { eq, ilike, sql } from "drizzle-orm";
+import { eq, like, count } from "drizzle-orm";
 import { requireAuth, requireAdmin } from "../middlewares/auth";
 import {
   CreateProductBody,
@@ -20,10 +20,10 @@ router.get("/products", requireAuth, async (req, res): Promise<void> => {
   const limit = (query.success && query.data.limit) ? Number(query.data.limit) : 20;
   const offset = (page - 1) * limit;
 
-  const conditions = search ? [ilike(productsTable.name, `%${search}%`)] : [];
+  const conditions = search ? [like(productsTable.name, `%${search}%`)] : [];
 
   const [totalRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: count() })
     .from(productsTable)
     .where(conditions.length ? conditions[0] : undefined);
 
@@ -37,7 +37,7 @@ router.get("/products", requireAuth, async (req, res): Promise<void> => {
 
   res.json({
     data: data.map(p => ({ ...p, price: Number(p.price) })),
-    total: totalRow.count,
+    total: Number(totalRow?.count ?? 0),
     page,
     limit,
   });

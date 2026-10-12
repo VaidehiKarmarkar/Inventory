@@ -1,7 +1,7 @@
-import { pgTable, varchar, json, timestamp } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
-export const sessionTable = pgTable("session", {
-  sid: varchar("sid").primaryKey(),
-  sess: json("sess").notNull(),
-  expire: timestamp("expire", { precision: 6 }).notNull(),
+export const sessionTable = sqliteTable("session", {
+  sid: text("sid").primaryKey(),
+  sess: text("sess").notNull(),
+  expire: integer("expire", { mode: "timestamp" }).notNull(),
 });

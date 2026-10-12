@@ -1,9 +1,18 @@
 import { Router } from "express";
 import { db, usersTable, productsTable, ordersTable, inventoryTable } from "@workspace/db";
-import { sql, lte, gte, and, desc } from "drizzle-orm";
+import { sql, lte, gte, and, desc, count, eq } from "drizzle-orm";
 import { requireAuth, getSessionUser } from "../middlewares/auth";
 
 const router = Router();
+
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function getMonthLabel(monthKey: string): string {
+  if (!monthKey) return "";
+  const parts = monthKey.split("-");
+  if (parts.length < 2) return monthKey;
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  return `${MONTH_NAMES[monthIdx] || parts[1]} ${parts[0]}`;
+}
 
 router.get("/dashboard/admin", requireAuth, async (req, res): Promise<void> => {
   const user = await getSessionUser(req);
@@ -16,24 +25,24 @@ router.get("/dashboard/admin", requireAuth, async (req, res): Promise<void> => {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [totalProducts] = await db.select({ count: sql<number>`count(*)::int` }).from(productsTable);
-  const [totalInventory] = await db.select({ sum: sql<number>`coalesce(sum(available_quantity), 0)::int` }).from(productsTable);
-  const [totalOrders] = await db.select({ count: sql<number>`count(*)::int` }).from(ordersTable);
-  const [todaySalesRow] = await db.select({ sum: sql<number>`coalesce(sum(grand_total::numeric), 0)::float` }).from(ordersTable).where(gte(ordersTable.createdAt, todayStart));
-  const [monthlySalesRow] = await db.select({ sum: sql<number>`coalesce(sum(grand_total::numeric), 0)::float` }).from(ordersTable).where(gte(ordersTable.createdAt, monthStart));
-  const [totalUsers] = await db.select({ count: sql<number>`count(*)::int` }).from(usersTable);
-  const [outOfStock] = await db.select({ count: sql<number>`count(*)::int` }).from(productsTable).where(sql`available_quantity = 0`);
-  const [lowStock] = await db.select({ count: sql<number>`count(*)::int` }).from(productsTable).where(and(sql`available_quantity > 0`, lte(productsTable.availableQuantity, 2)));
+  const [totalProducts] = await db.select({ count: count() }).from(productsTable);
+  const [totalInventory] = await db.select({ sum: sql<number>`coalesce(sum(available_quantity), 0)` }).from(productsTable);
+  const [totalOrders] = await db.select({ count: count() }).from(ordersTable);
+  const [todaySalesRow] = await db.select({ sum: sql<number>`coalesce(sum(cast(grand_total as real)), 0)` }).from(ordersTable).where(gte(ordersTable.createdAt, todayStart));
+  const [monthlySalesRow] = await db.select({ sum: sql<number>`coalesce(sum(cast(grand_total as real)), 0)` }).from(ordersTable).where(gte(ordersTable.createdAt, monthStart));
+  const [totalUsers] = await db.select({ count: count() }).from(usersTable);
+  const [outOfStock] = await db.select({ count: count() }).from(productsTable).where(sql`available_quantity = 0`);
+  const [lowStock] = await db.select({ count: count() }).from(productsTable).where(and(sql`available_quantity > 0`, lte(productsTable.availableQuantity, 2)));
 
   res.json({
-    totalProducts: totalProducts.count,
-    totalInventory: totalInventory.sum,
-    totalOrders: totalOrders.count,
-    todaySales: todaySalesRow.sum,
-    monthlySales: monthlySalesRow.sum,
-    totalUsers: totalUsers.count,
-    outOfStockCount: outOfStock.count,
-    lowStockCount: lowStock.count,
+    totalProducts: Number(totalProducts?.count ?? 0),
+    totalInventory: Number(totalInventory?.sum ?? 0),
+    totalOrders: Number(totalOrders?.count ?? 0),
+    todaySales: Number(todaySalesRow?.sum ?? 0),
+    monthlySales: Number(monthlySalesRow?.sum ?? 0),
+    totalUsers: Number(totalUsers?.count ?? 0),
+    outOfStockCount: Number(outOfStock?.count ?? 0),
+    lowStockCount: Number(lowStock?.count ?? 0),
   });
 });
 
@@ -50,13 +59,13 @@ router.get("/dashboard/analytics", requireAuth, async (req, res): Promise<void> 
   if (dateFrom && typeof dateFrom === "string" && dateFrom.trim()) {
     const dFrom = new Date(`${dateFrom.trim()}T00:00:00.000Z`);
     if (!isNaN(dFrom.getTime())) {
-      conditions.push(sql`o.created_at >= ${dFrom}`);
+      conditions.push(sql`o.created_at >= ${Math.floor(dFrom.getTime() / 1000)}`);
     }
   }
   if (dateTo && typeof dateTo === "string" && dateTo.trim()) {
     const dTo = new Date(`${dateTo.trim()}T23:59:59.999Z`);
     if (!isNaN(dTo.getTime())) {
-      conditions.push(sql`o.created_at <= ${dTo}`);
+      conditions.push(sql`o.created_at <= ${Math.floor(dTo.getTime() / 1000)}`);
     }
   }
 
@@ -65,15 +74,14 @@ router.get("/dashboard/analytics", requireAuth, async (req, res): Promise<void> 
   // Month-wise aggregation
   const monthWiseRaw = await db.execute(sql`
     SELECT
-      to_char(o.created_at, 'YYYY-MM') AS month_key,
-      to_char(o.created_at, 'Mon YYYY') AS month_label,
-      count(*)::int AS order_count,
-      coalesce(sum(o.grand_total::numeric), 0)::float AS revenue,
-      coalesce(sum(o.paid_amount::numeric), 0)::float AS paid_amount,
-      coalesce(sum(o.pending_amount::numeric), 0)::float AS pending_amount
+      strftime('%Y-%m', datetime(o.created_at, 'unixepoch')) AS month_key,
+      count(*) AS order_count,
+      coalesce(sum(cast(o.grand_total as real)), 0) AS revenue,
+      coalesce(sum(cast(o.paid_amount as real)), 0) AS paid_amount,
+      coalesce(sum(cast(o.pending_amount as real)), 0) AS pending_amount
     FROM orders o
     ${whereSql}
-    GROUP BY to_char(o.created_at, 'YYYY-MM'), to_char(o.created_at, 'Mon YYYY')
+    GROUP BY strftime('%Y-%m', datetime(o.created_at, 'unixepoch'))
     ORDER BY month_key ASC
     LIMIT 12
   `);
@@ -83,8 +91,8 @@ router.get("/dashboard/analytics", requireAuth, async (req, res): Promise<void> 
     SELECT
       oi.product_id,
       oi.product_name,
-      sum(oi.quantity)::int AS total_quantity_sold,
-      coalesce(sum(oi.total::numeric), 0)::float AS total_revenue
+      sum(oi.quantity) AS total_quantity_sold,
+      coalesce(sum(cast(oi.total as real)), 0) AS total_revenue
     FROM order_items oi
     JOIN orders o ON oi.order_id = o.id
     ${whereSql}
@@ -96,10 +104,10 @@ router.get("/dashboard/analytics", requireAuth, async (req, res): Promise<void> 
   // Summary Totals
   const summaryRaw = await db.execute(sql`
     SELECT
-      count(*)::int AS total_orders,
-      coalesce(sum(grand_total::numeric), 0)::float AS total_revenue,
-      coalesce(sum(paid_amount::numeric), 0)::float AS total_paid,
-      coalesce(sum(pending_amount::numeric), 0)::float AS total_pending
+      count(*) AS total_orders,
+      coalesce(sum(cast(grand_total as real)), 0) AS total_revenue,
+      coalesce(sum(cast(paid_amount as real)), 0) AS total_paid,
+      coalesce(sum(cast(pending_amount as real)), 0) AS total_pending
     FROM orders o
     ${whereSql}
   `);
@@ -107,15 +115,15 @@ router.get("/dashboard/analytics", requireAuth, async (req, res): Promise<void> 
   const summaryRow = (summaryRaw.rows[0] as Record<string, unknown>) ?? { total_orders: 0, total_revenue: 0, total_paid: 0, total_pending: 0 };
 
   res.json({
-    monthWise: monthWiseRaw.rows.map(r => ({
+    monthWise: (monthWiseRaw.rows as any[]).map(r => ({
       monthKey: String(r.month_key),
-      monthLabel: String(r.month_label),
+      monthLabel: getMonthLabel(String(r.month_key)),
       orderCount: Number(r.order_count),
       revenue: Number(r.revenue),
       paidAmount: Number(r.paid_amount),
       pendingAmount: Number(r.pending_amount),
     })),
-    productWise: productWiseRaw.rows.map(r => ({
+    productWise: (productWiseRaw.rows as any[]).map(r => ({
       productId: Number(r.product_id),
       productName: String(r.product_name),
       totalQuantitySold: Number(r.total_quantity_sold),
@@ -140,16 +148,16 @@ router.get("/dashboard/user", requireAuth, async (req, res): Promise<void> => {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const [ordersToday] = await db.select({ count: sql<number>`count(*)::int` }).from(ordersTable).where(
-    and(sql`created_by_id = ${user.id}`, gte(ordersTable.createdAt, todayStart))
+  const [ordersToday] = await db.select({ count: count() }).from(ordersTable).where(
+    and(eq(ordersTable.createdById, user.id), gte(ordersTable.createdAt, todayStart))
   );
-  const [totalOrders] = await db.select({ count: sql<number>`count(*)::int` }).from(ordersTable).where(sql`created_by_id = ${user.id}`);
-  const [totalRevenue] = await db.select({ sum: sql<number>`coalesce(sum(grand_total::numeric), 0)::float` }).from(ordersTable).where(sql`created_by_id = ${user.id}`);
+  const [totalOrders] = await db.select({ count: count() }).from(ordersTable).where(eq(ordersTable.createdById, user.id));
+  const [totalRevenue] = await db.select({ sum: sql<number>`coalesce(sum(cast(grand_total as real)), 0)` }).from(ordersTable).where(eq(ordersTable.createdById, user.id));
 
   res.json({
-    ordersToday: ordersToday.count,
-    totalOrders: totalOrders.count,
-    totalRevenue: totalRevenue.sum,
+    ordersToday: Number(ordersToday?.count ?? 0),
+    totalOrders: Number(totalOrders?.count ?? 0),
+    totalRevenue: Number(totalRevenue?.sum ?? 0),
   });
 });
 
@@ -182,7 +190,7 @@ router.get("/dashboard/recent-orders", requireAuth, async (req, res): Promise<vo
       createdAt: ordersTable.createdAt,
     })
     .from(ordersTable)
-    .leftJoin(usersTable, sql`${ordersTable.createdById} = ${usersTable.id}`)
+    .leftJoin(usersTable, eq(ordersTable.createdById, usersTable.id))
     .orderBy(sql`${ordersTable.createdAt} desc`)
     .limit(10);
 
@@ -229,14 +237,14 @@ router.get("/dashboard/export/excel", requireAuth, async (req, res): Promise<voi
 
   const monthWiseRaw = await db.execute(sql`
     SELECT
-      to_char(o.created_at, 'Mon YYYY') AS month_label,
-      count(*)::int AS order_count,
-      coalesce(sum(o.grand_total::numeric), 0)::float AS revenue,
-      coalesce(sum(o.paid_amount::numeric), 0)::float AS paid_amount,
-      coalesce(sum(o.pending_amount::numeric), 0)::float AS pending_amount
+      strftime('%Y-%m', datetime(o.created_at, 'unixepoch')) AS month_key,
+      count(*) AS order_count,
+      coalesce(sum(cast(o.grand_total as real)), 0) AS revenue,
+      coalesce(sum(cast(o.paid_amount as real)), 0) AS paid_amount,
+      coalesce(sum(cast(o.pending_amount as real)), 0) AS pending_amount
     FROM orders o
-    GROUP BY to_char(o.created_at, 'YYYY-MM'), to_char(o.created_at, 'Mon YYYY')
-    ORDER BY to_char(o.created_at, 'YYYY-MM') DESC
+    GROUP BY strftime('%Y-%m', datetime(o.created_at, 'unixepoch'))
+    ORDER BY month_key DESC
   `);
 
   const lines: string[] = [];
@@ -248,9 +256,10 @@ router.get("/dashboard/export/excel", requireAuth, async (req, res): Promise<voi
   // SECTION 1: MONTHLY SALES SUMMARY
   lines.push("--- MONTHLY SALES & REVENUE SUMMARY ---");
   lines.push(["Month", "Total Orders", "Total Revenue (₹)", "Total Paid (₹)", "Pending Balance (₹)"].map(escapeCsv).join(","));
+
   for (const m of monthWiseRaw.rows as any[]) {
     lines.push([
-      m.month_label,
+      getMonthLabel(String(m.month_key)),
       m.order_count,
       Number(m.revenue).toFixed(2),
       Number(m.paid_amount).toFixed(2),

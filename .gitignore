@@ -1,8 +1,11 @@
 # compiled output
 dist
+dist-electron
 tmp
 out-tsc
 *.tsbuildinfo
+*.db
+*.db-journal
 
 # dependencies
 node_modules

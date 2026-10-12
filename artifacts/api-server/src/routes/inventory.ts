@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, inventoryTable, productsTable } from "@workspace/db";
-import { eq, sql, ilike, and } from "drizzle-orm";
+import { eq, sql, like, and, count } from "drizzle-orm";
 import { requireAuth, requireAdmin, getSessionUser } from "../middlewares/auth";
 
 const router = Router();
@@ -17,13 +17,13 @@ router.get("/inventory", requireAuth, async (req, res): Promise<void> => {
     conditions.push(eq(inventoryTable.productId, productId));
   }
   if (search) {
-    conditions.push(ilike(inventoryTable.productName, `%${search}%`));
+    conditions.push(like(inventoryTable.productName, `%${search}%`));
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [totalRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: count() })
     .from(inventoryTable)
     .where(whereClause);
 
@@ -47,7 +47,7 @@ router.get("/inventory", requireAuth, async (req, res): Promise<void> => {
     .limit(limit)
     .offset(offset);
 
-  res.json({ data, total: totalRow.count, page, limit });
+  res.json({ data, total: Number(totalRow?.count ?? 0), page, limit });
 });
 
 router.post("/inventory", requireAdmin, async (req, res): Promise<void> => {

@@ -5,14 +5,14 @@
   "private": true,
   "main": "electron/main.js",
   "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "postinstall": "node scripts/fix-esbuild-perms.cjs",
+    "preinstall": "node -e \"if(!process.env.npm_config_user_agent?.startsWith('pnpm')){console.error('Use pnpm instead');process.exit(1)}\"",
+    "postinstall": "node scripts/fix-esbuild-perms.cjs && npm run build",
     "build": "node scripts/pnpm.cjs -r --if-present run build",
     "build:docker": "pnpm exec tsc --build && pnpm --filter @workspace/api-server --filter @workspace/billing-app run build",
     "start": "node artifacts/api-server/dist/index.mjs",
     "dev": "node scripts/pnpm.cjs -r --parallel --if-present run dev",
     "electron:start": "electron .",
-    "electron:build": "node scripts/pnpm.cjs run build && electron-builder",
+    "electron:build": "node scripts/pnpm.cjs run build && node scripts/pnpm.cjs exec electron-builder",
     "db:migrate": "node scripts/pnpm.cjs --filter @workspace/db run push",
     "db:seed": "node scripts/pnpm.cjs --filter @workspace/db run seed",
     "typecheck:libs": "tsc --build",
@@ -30,6 +30,11 @@
     "directories": {
       "output": "dist-electron"
     },
+    "asar": true,
+    "asarUnpack": [
+      "artifacts/api-server/dist/**/*",
+      "artifacts/billing-app/dist/**/*"
+    ],
     "files": [
       "electron/**/*",
       "artifacts/api-server/dist/**/*",
@@ -39,6 +44,13 @@
     ],
     "win": {
       "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
     }
   }
 }

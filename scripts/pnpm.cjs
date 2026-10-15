@@ -8,12 +8,12 @@ const args = process.argv.slice(2);
 const execPath = process.env.npm_execpath;
 
 let status;
-if (execPath) {
-  if (execPath.endsWith(".exe") || execPath.endsWith(".cmd") || execPath.endsWith(".bat")) {
+if (execPath && execPath.includes("pnpm")) {
+  if (execPath.endsWith(".exe")) {
     status = spawnSync(execPath, args, {
       stdio: "inherit",
       env: process.env,
-      shell: true,
+      shell: process.platform === "win32",
     }).status;
   } else {
     status = spawnSync(process.execPath, [execPath, ...args], {
@@ -22,7 +22,7 @@ if (execPath) {
     }).status;
   }
 } else {
-  status = spawnSync("pnpm", args, {
+  status = spawnSync("npx", ["--yes", "pnpm", ...args], {
     stdio: "inherit",
     env: process.env,
     shell: process.platform === "win32",

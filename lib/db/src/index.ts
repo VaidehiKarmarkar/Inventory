@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
-import * as schema from "./schema";
+import * as schema from "./schema/index";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -18,15 +18,11 @@ function getDatabaseUrl(): string {
       ? path.join(process.env.HOME || "", "Library", "Application Support")
       : process.env.HOME);
 
-  if (process.env.ELECTRON_APP_DATA || (process.versions && process.versions.electron)) {
-    const dbDir = path.join(appData || process.cwd(), "OptimaGodown");
-    if (!fs.existsSync(dbDir)) {
-      fs.mkdirSync(dbDir, { recursive: true });
-    }
-    return `file:${path.join(dbDir, "inventory.db")}`;
+  const dbDir = path.join(appData || process.cwd(), "OptimaGodown");
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
   }
-
-  return "file:inventory.db";
+  return `file:${path.join(dbDir, "inventory.db")}`;
 }
 
 const dbUrl = getDatabaseUrl();
@@ -138,4 +134,4 @@ export async function initDb(): Promise<void> {
   `);
 }
 
-export * from "./schema";
+export * from "./schema/index";

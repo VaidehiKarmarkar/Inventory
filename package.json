@@ -11,11 +11,12 @@
     "start": "node artifacts/api-server/dist/index.mjs",
     "dev": "node scripts/pnpm.cjs -r --parallel --if-present run dev",
     "electron:start": "electron .",
-    "electron:build": "node scripts/pnpm.cjs run build && electron-builder",
+    "electron:build": "node scripts/pnpm.cjs run build && node scripts/pnpm.cjs exec electron-builder",
     "migrate": "node scripts/pnpm.cjs --filter @workspace/db run push",
     "seed": "node scripts/pnpm.cjs --filter @workspace/db run seed",
     "db:migrate": "node scripts/pnpm.cjs --filter @workspace/db run push",
     "db:seed": "node scripts/pnpm.cjs --filter @workspace/db run seed",
+    "db:import": "node scripts/import-backup.cjs",
     "typecheck:libs": "tsc --build",
     "typecheck": "node scripts/pnpm.cjs run typecheck:libs && node scripts/pnpm.cjs -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
@@ -31,6 +32,11 @@
     "directories": {
       "output": "dist-electron"
     },
+    "asar": true,
+    "asarUnpack": [
+      "artifacts/api-server/dist/**/*",
+      "artifacts/billing-app/dist/**/*"
+    ],
     "files": [
       "electron/**/*",
       "artifacts/api-server/dist/**/*",
@@ -40,6 +46,13 @@
     ],
     "win": {
       "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
     }
   }
 }

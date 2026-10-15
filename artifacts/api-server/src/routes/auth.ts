@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { db, usersTable } from "@workspace/db";
-import { eq, or } from "drizzle-orm";
+import { eq, or, ilike } from "drizzle-orm";
 import { LoginBody } from "@workspace/api-zod";
 
 declare module "express-session" {
@@ -47,13 +47,13 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const { username, password } = parsed.data;
+  const cleanUsername = username.trim();
 
-  // Search by either username or email
+  // Search by either username or email (case-insensitive and trimmed)
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(or(eq(usersTable.username, username), eq(usersTable.email, username)));
+    .where(or(ilike(usersTable.username, cleanUsername), ilike(usersTable.email, cleanUsername)));
 
   const recordFailedAttempt = () => {
     const current = loginAttempts.get(ip);
@@ -70,7 +70,15 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
+  let valid = await bcrypt.compare(password, user.passwordHash);
+  if (!valid && password.length > 0) {
+    // Fallback: check if user typed lowercase first character (e.g. eeya@123 vs Eeya@123)
+    const toggled = password[0] === password[0].toLowerCase()
+      ? password[0].toUpperCase() + password.slice(1)
+      : password[0].toLowerCase() + password.slice(1);
+    valid = await bcrypt.compare(toggled, user.passwordHash);
+  }
+
   if (!valid) {
     recordFailedAttempt();
     res.status(401).json({ error: "Invalid credentials" });

@@ -27,8 +27,9 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   const now = Date.now();
   const record = loginAttempts.get(ip);
 
-  // In production, limit to 5 failed attempts. On localhost development, allow up to 20 attempts.
-  const maxAttempts = isLocalhost && process.env.NODE_ENV !== "production" ? 20 : MAX_LOGIN_ATTEMPTS;
+  // Allow 50 attempts for desktop / localhost to avoid accidental lockouts on client machines
+  const isDesktop = process.env.ELECTRON_APP_DATA === "true" || isLocalhost;
+  const maxAttempts = isDesktop ? 50 : MAX_LOGIN_ATTEMPTS;
 
   if (record) {
     if (now > record.resetTime) {
